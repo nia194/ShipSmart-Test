@@ -1,0 +1,19 @@
+[project]
+name = "shipsmart-test"
+version = "0.1.0"
+description = "Cross-repo contract + live e2e integration tests for the ShipSmart system."
+requires-python = ">=3.13"
+dependencies = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.25.0",
+    "httpx>=0.28.0",
+    "pyjwt>=2.9.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["contract", "e2e"]
+markers = [
+    "e2e: live cross-service test; requires the stack up (scripts/run-stack.sh up)",
+]

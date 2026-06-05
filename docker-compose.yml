@@ -1,0 +1,16 @@
+# The one containerized dependency for the e2e stack: Postgres + pgvector (the
+# Java service's database). The application services (MCP, API, Java) are hosted
+# as local processes by scripts/run-stack.sh — they need the sibling repos'
+# toolchains (uv, JDK) rather than images, so they aren't built here.
+#
+#   docker compose up -d db      # start just the database
+#   scripts/run-stack.sh up      # start db + MCP + API + Java together
+services:
+  db:
+    image: pgvector/pgvector:pg15
+    container_name: ss_e2e_pg
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
