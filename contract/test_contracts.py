@@ -24,6 +24,8 @@ from sibling import (
 
 WEB_ADVISOR = read(WEB / "src/lib/advisor-api.ts")
 API_SCHEMAS = read(API / "app/schemas/advisor.py")
+WEB_COMPARE = read(WEB / "src/components/shipping/compare.types.ts")
+API_COMPARE = read(API / "app/schemas/compare.py")
 
 QUOTE_REQ = {"origin_zip", "destination_zip", "weight_lbs", "length_in", "width_in", "height_in"}
 ADDR_REQ = {"street", "city", "state", "zip_code"}
@@ -78,6 +80,33 @@ def test_shipment_dto_matches_java_and_web():
     web = ts_interface_fields(WEB_ADVISOR, "ShipmentSummary")
     assert java == SHIPMENT_FIELDS
     assert web == SHIPMENT_FIELDS
+
+
+# ── Compare cockpit: ShipSmart-Web compare.types.ts ↔ ShipSmart-API compare.py ─
+
+COMPARE_OPTION_FIELDS = {
+    "id", "carrier", "service_name", "carrier_type", "price_usd",
+    "arrival_date", "arrival_label", "transit_days", "guaranteed",
+}
+COMPARE_SHIPMENT_FIELDS = {
+    "item_description", "origin_zip", "destination_zip", "deadline_date", "weight_lb",
+}
+
+
+def test_compare_option_shape_matches_api_and_web():
+    web = ts_interface_fields(WEB_COMPARE, "CompareOption")
+    api = py_model_fields(API_COMPARE, "CompareOption")
+    assert web == api == COMPARE_OPTION_FIELDS
+
+
+def test_compare_shipment_web_fields_are_accepted_by_api():
+    # The frontend posts these shipment fields; ShipSmart-API's ShipmentContext
+    # must accept every one (it may carry additional optional fields, e.g.
+    # declared_value_usd, which the web client simply omits).
+    web = ts_interface_fields(WEB_COMPARE, "Shipment")
+    api = py_model_fields(API_COMPARE, "ShipmentContext")
+    assert web == COMPARE_SHIPMENT_FIELDS
+    assert web <= api
 
 
 # ── MCP tool schemas: MCP ↔ API test double ↔ Web context ────────────────────
