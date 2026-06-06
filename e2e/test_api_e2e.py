@@ -62,3 +62,35 @@ def test_advisor_tracking_returns_decision_path(api):
     body = r.json()
     assert body["guidance"]
     assert body["decision_path"]["answer"] in ("rule", "llm", "fallback")
+
+
+_COMPARE_BODY = {
+    "shipment": {
+        "item_description": "ceramic mugs", "origin_zip": "90210",
+        "destination_zip": "10001", "deadline_date": "2026-06-09", "weight_lb": 4,
+    },
+    "option_ids": ["ups-ground", "fedex-2day"],
+    "options": [
+        {"id": "ups-ground", "carrier": "UPS", "service_name": "UPS Ground",
+         "carrier_type": "public", "price_usd": 10.0, "arrival_date": "2026-06-10",
+         "arrival_label": "Wed, Jun 10", "transit_days": 5, "guaranteed": False},
+        {"id": "fedex-2day", "carrier": "FedEx", "service_name": "FedEx 2Day",
+         "carrier_type": "private", "price_usd": 25.0, "arrival_date": "2026-06-07",
+         "arrival_label": "Sun, Jun 7", "transit_days": 2, "guaranteed": True},
+    ],
+    "selected_priority": "price",
+}
+
+
+def test_compare_returns_all_scenarios_with_rule_based_winner(api):
+    """The decision-cockpit path the Web CompareSection drives: POST the real
+    quote facts, get back all four precomputed scenarios. Winner/numbers are
+    rule-based (H) — deterministic regardless of the LLM — so the cheapest option
+    wins the price scenario even on the Echo client."""
+    r = api.post("/api/v1/compare", json=_COMPARE_BODY)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert set(body["scenarios"]) == {"ontime", "damage", "price", "speed"}
+    assert body["scenarios"]["price"]["winner_id"] == "ups-ground"   # cheapest
+    assert body["shipment_summary"]
+    assert "winner:rule" in body["decision_path"]["tags"]
