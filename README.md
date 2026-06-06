@@ -17,8 +17,10 @@ shipHub Details/
     `decision_path`/`source` tags),
   - ShipSmart-Orchestrator `ShipmentSummaryDto` ↔ ShipSmart-Web `ShipmentSummary`,
   - ShipSmart-MCP tool `input_schema` ↔ the API's test double ↔ Web context keys,
+  - ShipSmart-Web `compare.types.ts` ↔ ShipSmart-API `compare.py` (`CompareOption`,
+    `ShipmentContext`),
   - ShipSmart-Infra `match_rag_chunks_lexical` signature ↔ the API's SQL.
-  **No services required** — runs anywhere, fast.
+  **No services required** — runs anywhere, fast (11 tests).
 - `e2e/` — live HTTP tests against a running self-contained stack: MCP tools,
   API `/ready` chain report, the **API → MCP** tool hop, RAG grounding, guardrail
   injection block, and (optional) Java `/shipments` JWT-scoping + ownership.
@@ -40,9 +42,12 @@ service is down, so `contract/` always passes even with nothing hosted.
 - **API** uses the in-memory vector store + `EchoClient`, and is pointed at the
   local MCP for tool calls.
 - **Java** uses Hibernate `create-drop` (Flyway pointed at an empty location so
-  the `FlywayValidationRunner` bean still wires but runs no migrations) and a
-  **test** HS256 JWT secret; e2e tokens are minted in `e2e/conftest.py`.
-  Java is optional — if it doesn't boot, its e2e tests skip and MCP+API still run.
+  the `FlywayValidationRunner` bean still wires but runs no migrations), the
+  tracing exporter disabled, and a **test** HS256 JWT secret; e2e tokens are
+  minted in `e2e/conftest.py`. The full context boots (the `QuoteCache`
+  two-constructor wiring is fixed in ShipSmart-Orchestrator), so the Java e2e
+  tests **run** — create → read → list → cross-user ownership (404) against real
+  Postgres. They still skip gracefully if Java is intentionally left down.
 
 Override endpoints/secret via `SHIPSMART_E2E_{MCP,API,JAVA}_URL` and
 `SHIPSMART_E2E_JWT_SECRET`.
