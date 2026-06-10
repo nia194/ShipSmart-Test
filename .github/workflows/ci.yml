@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install Python + dependencies
+        run: uv sync --dev
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      # The contract suite parses the sibling repos' source as text (see
+      # sibling.py: ROOT = the directory holding all repos), so they must be
+      # checked out alongside this repo. The ShipSmart-* repos are public, so the
+      # default token can read them. The e2e suite needs the live stack and is
+      # not run here.
+      - uses: actions/checkout@v4
+        with:
+          path: ShipSmart-Test
+      - uses: actions/checkout@v4
+        with:
+          repository: nia194/ShipSmart-API
+          path: ShipSmart-API
+      - uses: actions/checkout@v4
+        with:
+          repository: nia194/ShipSmart-MCP
+          path: ShipSmart-MCP
+      - uses: actions/checkout@v4
+        with:
+          repository: nia194/ShipSmart-Web
+          path: ShipSmart-Web
+      - uses: actions/checkout@v4
+        with:
+          repository: nia194/ShipSmart-Orchestrator
+          path: ShipSmart-Orchestrator
+      - uses: actions/checkout@v4
+        with:
+          repository: nia194/ShipSmart-Infra
+          path: ShipSmart-Infra
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Contract tests (cross-repo, no services)
+        working-directory: ShipSmart-Test
+        run: |
+          uv sync --dev
+          uv run pytest contract/ -q
