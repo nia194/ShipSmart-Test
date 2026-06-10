@@ -64,5 +64,9 @@ def json_schema_required(py_src: str, tool_class: str) -> tuple[set[str], set[st
     req_block = re.search(r'"required":\s*\[(.*?)\]', body, re.S)
     required = set(re.findall(r'"([a-z_]+)"', req_block.group(1))) if req_block else set()
     props_block = re.search(r'"properties":\s*\{(.*)\n\s*\},', body, re.S)
-    props = set(re.findall(r'\n\s{16}"([a-z_]+)":\s*\{', props_block.group(1))) if props_block else set()
+    props = (
+        set(re.findall(r'\n\s{16}"([a-z_]+)":\s*\{', props_block.group(1)))
+        if props_block
+        else set()
+    )
     return required, props
