@@ -113,8 +113,12 @@ def test_compare_shipment_web_fields_are_accepted_by_api():
 
 
 def test_mcp_tool_schemas_are_canonical():
-    qreq, qprops = json_schema_required(read(MCP / "app/tools/quote_tools.py"), "GetQuotePreviewTool")
-    areq, aprops = json_schema_required(read(MCP / "app/tools/address_tools.py"), "ValidateAddressTool")
+    qreq, qprops = json_schema_required(
+        read(MCP / "app/tools/quote_tools.py"), "GetQuotePreviewTool"
+    )
+    areq, aprops = json_schema_required(
+        read(MCP / "app/tools/address_tools.py"), "ValidateAddressTool"
+    )
     assert qreq == QUOTE_REQ and qprops == QUOTE_REQ
     assert areq == ADDR_REQ and aprops == (ADDR_REQ | {"country"})
 
