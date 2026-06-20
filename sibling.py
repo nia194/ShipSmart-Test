@@ -40,6 +40,18 @@ def py_model_fields(src: str, name: str) -> set[str]:
     return set(re.findall(r"^\s{4}([a-z_][A-Za-z0-9_]*)\s*:", m.group(1), re.M))
 
 
+def py_class_fields(src: str, name: str) -> set[str]:
+    """Top-level field names of any ``class Name(<base>):`` block.
+
+    Like :func:`py_model_fields` but base-class-agnostic — needed for models that
+    subclass a shared base (e.g. ShipSmart-API's frozen domain models extend a
+    private ``_Frozen(BaseModel)``, so the ``(BaseModel)`` matcher misses them).
+    """
+    m = re.search(rf"class {name}\([^)]*\):(.*?)(?:\nclass |\Z)", src, re.S)
+    assert m, f"python class {name} not found"
+    return set(re.findall(r"^\s{4}([a-z_][A-Za-z0-9_]*)\s*:", m.group(1), re.M))
+
+
 def java_record_components(src: str, name: str) -> set[str]:
     """Component names of a Java ``record Name( Type a, Type b, ... )``."""
     m = re.search(rf"record {name}\((.*?)\)\s*\{{", src, re.S)
