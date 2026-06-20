@@ -17,6 +17,7 @@ from sibling import (
     WEB,
     java_record_components,
     json_schema_required,
+    py_class_fields,
     py_model_fields,
     read,
     ts_interface_fields,
@@ -154,3 +155,69 @@ def test_infra_lexical_fn_matches_api_sql():
     ), "lexical fn must return (id, source, chunk_index, text, score)"
     assert "match_rag_chunks_lexical($1, $2)" in pg
     assert "source, chunk_index, text, score" in pg
+
+
+# ── Workflow + compliance: ShipSmart-API ↔ ShipSmart-Web (UC2/UC3/UC4) ───────
+
+WEB_WORKFLOW = read(WEB / "src/lib/workflow-api.ts")
+API_WORKFLOW_SCHEMAS = read(API / "app/schemas/workflow.py")
+API_WORKFLOW_STATE = read(API / "app/workflow/state.py")
+API_DOMAIN_MODELS = read(API / "app/domain/models.py")
+
+WORKFLOW_RESPONSE_FIELDS = {
+    "workflow_id", "status", "hs_code", "hs_title", "hs_candidates", "landed_cost",
+    "carrier_quotes", "recommended_carrier", "compliance", "documents",
+    "pending_review_areas", "officer_determination", "officer_note", "decisions",
+}
+
+
+def test_workflow_response_matches_api_and_web():
+    api = py_model_fields(API_WORKFLOW_SCHEMAS, "WorkflowResponse")
+    web = ts_interface_fields(WEB_WORKFLOW, "WorkflowResponse")
+    assert api == web == WORKFLOW_RESPONSE_FIELDS
+
+
+def test_workflow_process_request_matches():
+    api = py_model_fields(API_WORKFLOW_SCHEMAS, "WorkflowProcessRequest")
+    web = ts_interface_fields(WEB_WORKFLOW, "WorkflowProcessRequest")
+    assert api == web == {
+        "origin_country", "destination_country", "declared_value_usd",
+        "weight_lbs", "description", "category",
+    }
+
+
+def test_workflow_review_request_matches():
+    api = py_model_fields(API_WORKFLOW_SCHEMAS, "WorkflowReviewRequest")
+    web = ts_interface_fields(WEB_WORKFLOW, "WorkflowReviewRequest")
+    assert api == web == {"determination", "note"}
+
+
+def test_compliance_summary_matches_api_and_web():
+    api = py_model_fields(API_WORKFLOW_STATE, "ComplianceSummary")
+    web = ts_interface_fields(WEB_WORKFLOW, "ComplianceSummary")
+    assert api == web == {
+        "verdict", "summary", "flagged_areas", "unverified_areas",
+        "critique_rounds", "provider",
+    }
+
+
+def test_workflow_domain_models_match_api_and_web():
+    expected = {
+        "HsCandidate": {"hs_code", "title", "confidence"},
+        "DutyQuote": {
+            "hs_code", "destination", "value_usd", "duty_pct", "duty_usd",
+            "tax_label", "tax_pct", "tax_usd", "total_landed_usd", "trade_note",
+        },
+        "CarrierQuote": {"carrier", "service", "price_usd", "estimated_days"},
+        "GeneratedDoc": {"doc_type", "title", "fields"},
+    }
+    for name, fields in expected.items():
+        api = py_class_fields(API_DOMAIN_MODELS, name)  # domain models subclass _Frozen
+        web = ts_interface_fields(WEB_WORKFLOW, name)
+        assert api == web == fields, name
+
+
+def test_workflow_review_determination_literal_matches():
+    # The officer determination is exactly cleared|blocked on both sides.
+    assert 'Literal["cleared", "blocked"]' in API_WORKFLOW_SCHEMAS
+    assert '"cleared" | "blocked"' in WEB_WORKFLOW
