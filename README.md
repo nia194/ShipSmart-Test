@@ -21,6 +21,7 @@ shapes and actually work together end to end.
 - [Layout](#layout)
 - [Running the suites](#running-the-suites)
 - [The self-contained stack](#the-self-contained-stack)
+- [Planned: Hybrid Form ⇄ Chat Sync coverage](#planned-hybrid-form--chat-sync-coverage)
 - [License](#license)
 
 ---
@@ -117,6 +118,30 @@ service is down, so `contract/` always passes even with nothing hosted.
 
 Override endpoints/secret via `SHIPSMART_E2E_{MCP,API,JAVA}_URL` and
 `SHIPSMART_E2E_JWT_SECRET`.
+
+---
+
+## Planned: Hybrid Form ⇄ Chat Sync coverage
+
+> **Status: planned — not yet implemented.** Records upcoming cross-repo test coverage
+> for the hybrid form ⇄ chat sync feature ahead of the code. The suites below don't
+> exist yet.
+
+When the shared-shipment-draft feature lands across ShipSmart-Web (a shared
+`ShipmentDraft` store) and ShipSmart-API (the concierge consuming form-provided slots),
+this harness will gain:
+
+- **Contract** — assert the Web `ShipmentDraft` → concierge-state adapters line up with
+  the API's `ConversationState.slots` / advisor-context fields (the shared
+  shipment-context superset both surfaces populate).
+- **e2e** — an additive live-stack flow proving the round trip: provide a route in chat
+  → assert the form fields populate → provide weight in the form → assert the concierge
+  **does not re-ask** for it → run a quote. Skips gracefully when the stack is down, like
+  the other e2e suites.
+
+Depends on the (also-planned) Conversational Concierge chat endpoint
+(`/api/v1/concierge/chat`) in ShipSmart-API. **No Orchestrator / MCP / Infra change** is
+involved — the draft is client-owned.
 
 ---
 
