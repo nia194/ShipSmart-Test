@@ -221,3 +221,47 @@ def test_workflow_review_determination_literal_matches():
     # The officer determination is exactly cleared|blocked on both sides.
     assert 'Literal["cleared", "blocked"]' in API_WORKFLOW_SCHEMAS
     assert '"cleared" | "blocked"' in WEB_WORKFLOW
+
+
+# ── Conversational Concierge + hybrid sync: ShipSmart-API ↔ ShipSmart-Web ─────
+
+API_CONCIERGE_SCHEMAS = read(API / "app/schemas/concierge.py")
+API_CONCIERGE_MODELS = read(API / "app/agents/concierge/models.py")
+WEB_CONCIERGE = read(WEB / "src/lib/concierge-api.ts")
+WEB_DRAFT = read(WEB / "src/state/shipmentDraft.ts")
+
+
+def _api_slot_keys() -> set[str]:
+    m = re.search(r"SLOT_KEYS:[^=]*=\s*\((.*?)\)", API_CONCIERGE_MODELS, re.S)
+    assert m, "SLOT_KEYS tuple not found in concierge models"
+    return set(re.findall(r'"([a-z_]+)"', m.group(1)))
+
+
+def _web_slot_keys() -> set[str]:
+    m = re.search(r"SLOT_FIELD_MAP[^=]*=\s*\{(.*?)\n\}", WEB_DRAFT, re.S)
+    assert m, "SLOT_FIELD_MAP not found in shipmentDraft.ts"
+    return set(re.findall(r"^\s*([a-z_]+):", m.group(1), re.M))
+
+
+def test_concierge_state_shape_matches_api_and_web():
+    api = py_model_fields(API_CONCIERGE_SCHEMAS, "ConciergeState")
+    web = ts_interface_fields(WEB_CONCIERGE, "ConciergeState")
+    assert api == web == {"slots", "intent", "status", "pending_clarification", "turns"}
+
+
+def test_concierge_response_shape_matches_api_and_web():
+    api = py_model_fields(API_CONCIERGE_SCHEMAS, "ConciergeResponse")
+    web = ts_interface_fields(WEB_CONCIERGE, "ConciergeResponse")
+    assert api == web == {
+        "reply", "state", "clarification", "dispatched_to", "sources", "decisions", "provider",
+    }
+
+
+def test_concierge_slot_superset_covers_web_draft_fields():
+    api = _api_slot_keys()
+    web = _web_slot_keys()
+    # Every slot the Web ShipmentDraft maps to is a real server slot,
+    assert web <= api, web - api
+    # and the shared shipment-context core is present on both sides.
+    assert {"origin", "destination", "weight_lbs", "priority",
+            "description", "declared_value_usd"} <= web
