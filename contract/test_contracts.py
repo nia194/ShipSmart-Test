@@ -27,6 +27,9 @@ WEB_ADVISOR = read(WEB / "src/lib/advisor-api.ts")
 API_SCHEMAS = read(API / "app/schemas/advisor.py")
 WEB_COMPARE = read(WEB / "src/components/shipping/compare.types.ts")
 API_COMPARE = read(API / "app/schemas/compare.py")
+API_INFO = read(API / "app/api/routes/info.py")
+API_CONFIG = read(API / "app/core/config.py")
+WEB_CONFIG = read(WEB / "src/config/api.ts")
 
 QUOTE_REQ = {"origin_zip", "destination_zip", "weight_lbs", "length_in", "width_in", "height_in"}
 ADDR_REQ = {"street", "city", "state", "zip_code"}
@@ -265,3 +268,19 @@ def test_concierge_slot_superset_covers_web_draft_fields():
     # and the shared shipment-context core is present on both sides.
     assert {"origin", "destination", "weight_lbs", "priority",
             "description", "declared_value_usd"} <= web
+
+
+# ── Shipping-scope policy: API publishes it; API + Web agree on the values ─────
+
+
+def test_info_response_publishes_shipping_scope():
+    """ShipSmart-API's /info contract exposes the mode for the frontend to read."""
+    fields = py_model_fields(API_INFO, "InfoResponse")
+    assert {"shipping_scope", "domestic_country"} <= fields, fields
+
+
+def test_shipping_scope_literals_agree_across_api_and_web():
+    """Both sides must speak the same two modes — guards against literal drift."""
+    for src in (API_CONFIG, WEB_CONFIG):
+        assert "worldwide" in src
+        assert "domestic" in src

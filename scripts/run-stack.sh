@@ -53,6 +53,8 @@ up() {
       INTERNAL_JAVA_API_URL=http://127.0.0.1:8080 RAG_AUTO_INGEST=true DATABASE_URL= \
       GUARDRAILS_ENABLED=true GUARDRAILS_BLOCK_ON_INJECTION=true \
       WORKFLOW_ENABLED=true CONCIERGE_ENABLED=true \
+      SHIPPING_SCOPE="${SHIPPING_SCOPE:-worldwide}" \
+      COMPLIANCE_EXPLICIT_ENABLED="${COMPLIANCE_EXPLICIT_ENABLED:-true}" \
       nohup uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 >"$STATE/api.log" 2>&1 &
     echo $! >"$STATE/api.pid" )
 
