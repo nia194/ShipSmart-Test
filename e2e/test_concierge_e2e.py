@@ -49,7 +49,11 @@ def test_concierge_does_not_reask_form_provided_slots(api):
     assert r.status_code == 200, r.text
     body = r.json()
     assert not any(d.startswith("concierge:clarify:") for d in body["decisions"])
-    assert body["dispatched_to"] == "compliance"
+    # Form-provided slots satisfy the requirement, so the turn dispatches (no re-ask).
+    # The exact worker depends on deployment flags: the UC2 compliance pass, or — when
+    # this international shipment also has the multi-agent workflow enabled (run-stack's
+    # default) — the full workflow bridge.
+    assert body["dispatched_to"] in ("compliance", "workflow")
     assert body["state"]["status"] == "answered"
 
 
@@ -62,3 +66,38 @@ def test_concierge_echoes_merged_state_without_clobbering(api):
     slots = r.json()["state"]["slots"]
     assert slots.get("destination")             # extracted from the message
     assert slots.get("priority") == "speed"      # prior (form) slot preserved
+
+
+def test_concierge_persists_and_recalls_by_session(api):
+    """A turn is persisted server-side; GET /concierge/{id} replays it (reload recall)."""
+    r = _chat(api, "ship from Atlanta to Seattle weighing 10 lb")
+    if r.status_code == 404:
+        pytest.skip("concierge disabled — set CONCIERGE_ENABLED=true")
+    assert r.status_code == 200, r.text
+    sid = r.json()["session_id"]
+    assert sid
+
+    h = api.get(f"/api/v1/concierge/{sid}")
+    assert h.status_code == 200, h.text
+    body = h.json()
+    assert body["session_id"] == sid
+    assert [m["role"] for m in body["messages"]] == ["user", "assistant"]
+    assert body["state"]["slots"].get("destination")  # merged state recalled
+
+
+def test_concierge_bridges_to_workflow_for_international(api):
+    """worldwide + compliance + workflow ON ⇒ an international shipment drives the
+    full multi-agent workflow (run-stack enables all three)."""
+    state = {
+        **_EMPTY_STATE,
+        "slots": {"destination_country": "BR", "description": "drone with lithium battery"},
+        "intent": "compliance",
+    }
+    r = _chat(api, "is my drone with a lithium battery allowed to Brazil?", state)
+    if r.status_code == 404:
+        pytest.skip("concierge disabled — set CONCIERGE_ENABLED=true")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    if body["dispatched_to"] != "workflow":
+        pytest.skip("workflow bridge off (needs SHIPPING_SCOPE=worldwide + WORKFLOW_ENABLED=true)")
+    assert any(d.startswith("workflow:") for d in body["decisions"])
