@@ -101,3 +101,28 @@ def test_concierge_bridges_to_workflow_for_international(api):
     if body["dispatched_to"] != "workflow":
         pytest.skip("workflow bridge off (needs SHIPPING_SCOPE=worldwide + WORKFLOW_ENABLED=true)")
     assert any(d.startswith("workflow:") for d in body["decisions"])
+
+
+def test_concierge_workflow_bridge_runs_to_terminal_state(api):
+    """The bridge drives the multi-agent workflow to a terminal outcome via the concierge
+    entry: it COMPLETES, or SUSPENDS for human review when a high-risk area can't be
+    verified (which it is/isn't depends on RAG corpus coverage — both are valid)."""
+    state = {
+        **_EMPTY_STATE,
+        "slots": {"destination_country": "BR", "description": "drone with a lithium battery"},
+        "intent": "compliance",
+    }
+    r = _chat(api, "is my drone with a lithium battery allowed to Brazil?", state)
+    if r.status_code == 404:
+        pytest.skip("concierge disabled — set CONCIERGE_ENABLED=true")
+    body = r.json()
+    if body["dispatched_to"] != "workflow":
+        pytest.skip("workflow bridge off (needs worldwide + compliance + workflow)")
+    decisions = body["decisions"]
+    assert "workflow:start" in decisions
+    assert ("workflow:complete" in decisions) or (
+        "workflow:interrupt:human_review" in decisions
+    ), decisions
+    # when it does suspend, the reply must guide the user to review
+    if "workflow:interrupt:human_review" in decisions:
+        assert "review" in body["reply"].lower()
