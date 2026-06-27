@@ -44,6 +44,24 @@ def test_advisor_guardrail_blocks_injection(api):
     assert "guardrail:blocked_injection" in dp["tags"]
 
 
+def test_advisor_reply_to_threads_reference_context(api):
+    """A WhatsApp-style reply resolves against the replied-to message; the live quote
+    context stays authoritative and the trail is tagged advisor:reply_to."""
+    r = api.post("/api/v1/advisor/shipping", json={
+        "query": "Why not the cheaper one, and what's the fastest within it?",
+        "context": _QUOTE_CTX,
+        "reply_to": {
+            "role": "assistant",
+            "text": "FedEx Express is fastest, while LuggageToShip Economy is cheapest.",
+        },
+        "recent_history": [{"role": "user", "text": "show me the options"}],
+    })
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["answer"]
+    assert "advisor:reply_to" in body["decision_path"]["tags"]
+
+
 def test_rag_ingest_then_query_returns_grounded_sources(api):
     ing = api.post("/api/v1/rag/ingest")
     assert ing.status_code == 200 and ing.json()["chunks_ingested"] > 0
