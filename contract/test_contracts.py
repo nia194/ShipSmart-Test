@@ -268,6 +268,26 @@ def test_concierge_history_shape_matches_api_and_web():
     assert api == web == {"session_id", "state", "messages"}
 
 
+# ── Reply-to-a-message: advisor + concierge speak the same reply context ──────
+
+API_CHAT_SCHEMAS = read(API / "app/schemas/chat.py")
+
+
+def test_reply_message_shape_matches_api_and_web():
+    api = py_model_fields(API_CHAT_SCHEMAS, "ReplyMessage")
+    web = ts_interface_fields(WEB_ADVISOR, "ReplyMessage")
+    assert api == web == {"role", "text"}
+
+
+def test_reply_context_request_fields_present_across_api_and_web():
+    # API request schemas accept the reply context (advisor + concierge)...
+    for src in (API_SCHEMAS, API_CONCIERGE_SCHEMAS):
+        assert "reply_to" in src and "recent_history" in src, "API request missing reply fields"
+    # ...and both Web chat clients send it.
+    for src in (WEB_ADVISOR, WEB_CONCIERGE):
+        assert "reply_to" in src and "recent_history" in src, "Web client missing reply fields"
+
+
 def test_concierge_slot_superset_covers_web_draft_fields():
     api = _api_slot_keys()
     web = _web_slot_keys()
