@@ -256,8 +256,16 @@ def test_concierge_response_shape_matches_api_and_web():
     api = py_model_fields(API_CONCIERGE_SCHEMAS, "ConciergeResponse")
     web = ts_interface_fields(WEB_CONCIERGE, "ConciergeResponse")
     assert api == web == {
-        "reply", "state", "clarification", "dispatched_to", "sources", "decisions", "provider",
+        "reply", "state", "session_id", "clarification",
+        "dispatched_to", "sources", "decisions", "provider",
     }
+
+
+def test_concierge_history_shape_matches_api_and_web():
+    """The recall endpoint's payload (GET /concierge/{id}) agrees across API ↔ Web."""
+    api = py_model_fields(API_CONCIERGE_SCHEMAS, "ConciergeHistoryResponse")
+    web = ts_interface_fields(WEB_CONCIERGE, "ConciergeHistoryResponse")
+    assert api == web == {"session_id", "state", "messages"}
 
 
 def test_concierge_slot_superset_covers_web_draft_fields():
