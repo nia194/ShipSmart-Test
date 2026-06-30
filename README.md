@@ -56,7 +56,7 @@ Two complementary layers — one static, one live:
 - **Contract** (`contract/`, **no services required**) — parses the sibling
   repos' *source as text* (`sibling.py`) and asserts the wire shapes line up, so
   a field rename in one repo can't silently break a consumer in another. Fast and
-  hermetic; runs anywhere (**20 tests**):
+  hermetic; runs anywhere (**25 tests**):
   - ShipSmart-API advisor response models ↔ ShipSmart-Web TS types (incl.
     `decision_path` / `source` tags),
   - ShipSmart-API compliance + workflow schemas (`WorkflowResponse`,
@@ -71,10 +71,12 @@ Two complementary layers — one static, one live:
 - **e2e** (`e2e/`, **live stack**) — HTTP tests against a running self-contained
   stack: MCP tools, API `/ready` chain report, the **API → MCP** tool hop, RAG
   grounding, guardrail injection block, the **compliance check**, the **concierge chat**
-  (clarify → don't-re-ask → full-state echo), + the full
+  (clarify → don't-re-ask → full-state echo), the
   **workflow lifecycle** (process → durable `GET` → human review → resume, plus
-  `404`/`409` edges), and (optional) Java `/shipments` JWT-scoping + ownership.
-  Each suite **skips** (never fails) when its service is down.
+  `404`/`409` edges), the **shipping-scope / compliance-explicit policy**
+  (`/api/v1/info` publishes the active mode; cross-border shipments are rejected
+  iff the deployment is `domestic`-only), and (optional) Java `/shipments`
+  JWT-scoping + ownership. Each suite **skips** (never fails) when its service is down.
 
 ---
 
@@ -94,7 +96,7 @@ Two complementary layers — one static, one live:
 
 ```bash
 uv run ruff check .              # lint
-uv run pytest contract/         # fast; nothing to host (20 tests)
+uv run pytest contract/         # fast; nothing to host (25 tests)
 scripts/run-stack.sh up         # host the stack (Docker required)
 uv run pytest e2e/              # live cross-service tests
 scripts/run-stack.sh down       # tear everything down
