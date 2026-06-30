@@ -105,6 +105,11 @@ scripts/run-stack.sh down       # tear everything down
 `uv run pytest` alone runs both suites; e2e tests **skip** (never fail) when a
 service is down, so `contract/` always passes even with nothing hosted.
 
+**Lint & CI.** `uv run ruff check .` lints the suite, and a `.pre-commit-config.yaml` wires
+ruff plus hygiene hooks (end-of-file fixer, trailing whitespace, YAML, merge-conflict). CI
+(`.github/workflows/ci.yml`) runs ruff and the **contract** suite on every push / PR; the
+e2e suite needs the live stack, so it stays a local/manual step.
+
 ---
 
 ## The self-contained stack — no real Supabase / LLM keys
