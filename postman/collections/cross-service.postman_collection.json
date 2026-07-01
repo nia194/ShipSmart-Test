@@ -1,0 +1,306 @@
+{
+  "info": {
+    "name": "ShipSmart-Test \u2014 cross-service",
+    "description": "Platform-level journeys spanning Java + Python + MCP: stack health, the shipping-scope policy, the concierge->multi-agent-workflow bridge, and X-Request-Id correlation propagation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('no server error', () => pm.expect(pm.response.code).to.be.below(500));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "shipping_scope",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Stack health (all three services)",
+      "item": [
+        {
+          "name": "Java /api/v1/health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Java 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{java_base}}/api/v1/health",
+              "host": [
+                "{{java_base}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Python /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Python 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{python_base}}/health",
+              "host": [
+                "{{python_base}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('MCP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{mcp_base}}/health",
+              "host": [
+                "{{mcp_base}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shipping-scope policy",
+      "item": [
+        {
+          "name": "Python /api/v1/info publishes scope",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const scope = pm.response.json().shipping_scope;",
+                  "pm.test('scope is a known mode', () => pm.expect(['worldwide','domestic']).to.include(scope));",
+                  "pm.collectionVariables.set('shipping_scope', scope);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{python_base}}/api/v1/info",
+              "host": [
+                "{{python_base}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "info"
+              ]
+            }
+          }
+        },
+        {
+          "name": "cross-border matches published scope",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const scope = pm.collectionVariables.get('shipping_scope');",
+                  "if (scope === 'domestic') pm.test('cross-border rejected (422) when domestic', () => pm.response.to.have.status(422));",
+                  "else pm.test('cross-border accepted (200) when worldwide', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{python_base}}/api/v1/compliance/check",
+              "host": [
+                "{{python_base}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "compliance",
+                "check"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin_country\": \"US\",\n  \"destination_country\": \"BR\",\n  \"declared_value_usd\": 600,\n  \"description\": \"camera drone with lithium battery\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Concierge -> multi-agent workflow bridge",
+      "item": [
+        {
+          "name": "international shipment drives the workflow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "// worldwide + compliance + workflow on (run-stack default) -> workflow; otherwise the UC2 compliance pass.",
+                  "pm.test('dispatched to a real worker', () => pm.expect(['workflow','compliance']).to.include(b.dispatched_to));",
+                  "if (b.dispatched_to === 'workflow') pm.test('workflow trail present', () => pm.expect(b.decisions.some(d => d.startsWith('workflow:'))).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{python_base}}/api/v1/concierge/chat",
+              "host": [
+                "{{python_base}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "concierge",
+                "chat"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"is my drone with a lithium battery allowed to Brazil?\",\n  \"state\": {\n    \"slots\": {\n      \"destination_country\": \"BR\",\n      \"description\": \"drone with a lithium battery\"\n    },\n    \"intent\": \"compliance\",\n    \"status\": \"gathering\",\n    \"pending_clarification\": null,\n    \"turns\": 0\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Correlation propagation",
+      "item": [
+        {
+          "name": "X-Request-Id echoed by the API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('echoes the same X-Request-Id', () => pm.expect(pm.response.headers.get('X-Request-Id')).to.eql('cross-svc-trace-abc123'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "cross-svc-trace-abc123"
+              }
+            ],
+            "url": {
+              "raw": "{{python_base}}/ready",
+              "host": [
+                "{{python_base}}"
+              ],
+              "path": [
+                "ready"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
