@@ -85,6 +85,48 @@ def test_concierge_persists_and_recalls_by_session(api):
     assert body["state"]["slots"].get("destination")  # merged state recalled
 
 
+def test_concierge_greets_and_orients(api):
+    """A pure greeting is welcomed + oriented, not dispatched to the RAG agent."""
+    r = _chat(api, "hi")
+    if r.status_code == 404:
+        pytest.skip("concierge disabled — set CONCIERGE_ENABLED=true")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "concierge:greeting" in body["decisions"]
+    assert body["dispatched_to"] is None
+    assert body["reply"].startswith("Hi!")
+
+
+def test_concierge_parses_lowercase_city_route(api):
+    """Lowercase city names resolve to a route + countries (were silently dropped)."""
+    r = _chat(api, "atlanta to seattle, 12 lb")
+    if r.status_code == 404:
+        pytest.skip("concierge disabled — set CONCIERGE_ENABLED=true")
+    assert r.status_code == 200, r.text
+    slots = r.json()["state"]["slots"]
+    assert slots.get("origin") and slots.get("destination")
+    assert slots.get("origin_country") == "US" and slots.get("destination_country") == "US"
+    assert slots.get("weight_lbs") == 12.0
+
+
+def test_concierge_natural_quote_gathers_then_dispatches(api):
+    """"send a gift" is a shipping intent → gather route + weight, then dispatch.
+    Keyless the final turn is a deterministic summary; the point is it no longer
+    dead-ends on "I don't have enough information"."""
+    r = _chat(api, "I need to send a gift to my mom")
+    if r.status_code == 404:
+        pytest.skip("concierge disabled — set CONCIERGE_ENABLED=true")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["state"]["intent"] == "quote"
+    assert body["dispatched_to"] is None  # gathering, not dumped to the advice agent
+
+    body = _chat(api, "from chicago to denver", body["state"]).json()
+    body = _chat(api, "about 5 pounds", body["state"]).json()
+    assert body["dispatched_to"] in ("summary", "agent")  # completed, not a refusal
+    assert body["state"]["slots"].get("weight_lbs") == 5.0
+
+
 def test_concierge_bridges_to_workflow_for_international(api):
     """worldwide + compliance + workflow ON ⇒ an international shipment drives the
     full multi-agent workflow (run-stack enables all three)."""
