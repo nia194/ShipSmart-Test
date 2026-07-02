@@ -71,7 +71,8 @@ Two complementary layers — one static, one live:
 - **e2e** (`e2e/`, **live stack**) — HTTP tests against a running self-contained
   stack: MCP tools, API `/ready` chain report, the **API → MCP** tool hop, RAG
   grounding, guardrail injection block, the **compliance check**, the **concierge chat**
-  (clarify → don't-re-ask → full-state echo), the
+  (greeting orientation, clarify → don't-re-ask → full-state echo, lowercase city routes
+  resolving to a full route, and a natural gather-then-complete quote flow), the
   **workflow lifecycle** (process → durable `GET` → human review → resume, plus
   `404`/`409` edges), the **shipping-scope / compliance-explicit policy**
   (`/api/v1/info` publishes the active mode; cross-border shipments are rejected
@@ -89,6 +90,12 @@ Two complementary layers — one static, one live:
 - `scripts/run-stack.sh` — host the self-contained stack (pgvector + MCP + API +
   Java; sets `WORKFLOW_ENABLED=true` so the workflow e2e exercises UC3/UC4).
 - `docker-compose.yml` — just the pgvector database.
+- `postman/` — cross-service Postman collection
+  (`collections/cross-service.postman_collection.json` +
+  `environments/local.postman_environment.json`): stack health across all three
+  services, the shipping-scope policy probe, the concierge → multi-agent workflow
+  bridge, and `X-Request-Id` correlation propagation — with assertions on every
+  request.
 
 ---
 
@@ -98,7 +105,9 @@ Two complementary layers — one static, one live:
 uv run ruff check .              # lint
 uv run pytest contract/         # fast; nothing to host (25 tests)
 scripts/run-stack.sh up         # host the stack (Docker required)
-uv run pytest e2e/              # live cross-service tests
+uv run pytest e2e/              # live cross-service tests (32 tests)
+newman run postman/collections/cross-service.postman_collection.json \
+  -e postman/environments/local.postman_environment.json   # Postman walk of the live stack
 scripts/run-stack.sh down       # tear everything down
 ```
 
@@ -143,6 +152,10 @@ ShipSmart-Web and the concierge consuming form-provided slots in ShipSmart-API:
 - **e2e** (`e2e/test_concierge_e2e.py`) — a live-stack flow proving the round trip: a thin
   message clarifies for a missing slot; a request carrying form-provided slots **does not
   re-ask** and dispatches; and the full merged state is echoed back without clobbering.
+  It also locks the conversational behaviors at the integration level: a pure greeting is
+  oriented instead of dumped to the RAG agent, a lowercase "atlanta to seattle" resolves
+  to a route + countries, and a natural "send a gift" conversation gathers details and
+  completes instead of dead-ending.
   Skips gracefully when the API is down, like the other e2e suites.
 
 Backed by the Conversational Concierge chat endpoint (`/api/v1/concierge/chat`) in
