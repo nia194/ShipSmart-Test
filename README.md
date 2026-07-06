@@ -33,11 +33,15 @@ Clone them all under one parent directory so the contract suite can resolve each
 sibling by relative path (see `sibling.py`):
 
 ```
-shipHub Details/
+<any parent directory>/
 ├── ShipSmart-Web/   ShipSmart-API/   ShipSmart-MCP/
 ├── ShipSmart-Orchestrator/   ShipSmart-Infra/
 └── ShipSmart-Test/   ← you are here
 ```
+
+All six are also mirrored together in
+**[ShipSmart](https://github.com/nia194/ShipSmart)** — the umbrella
+repository that snapshots each component at its latest stable milestone.
 
 | Repo | Role | What this suite checks |
 |------|------|------------------------|
