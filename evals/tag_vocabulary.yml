@@ -1,57 +1,77 @@
 # Canonical decision-tag vocabulary — evals §4.2 decision-tag contract AND the
-# §13 coverage.yml join key. A tag emitted anywhere in the code that is not
-# listed here is a drift failure (the contract test fails). A tag referenced by
-# coverage.yml that is not listed here is also a failure.
+# §13 coverage.yml join key. A tag whose namespace:base is EMITTED in ShipSmart-API
+# but not listed here fails contract/test_decision_tags.py; a tag referenced by
+# coverage.yml that is not listed here also fails.
 #
-# Namespaces mirror the decision paths the services already emit
-# (agent:* / concierge:* / compliance:* / workflow:*) plus the guardrail:*
-# controls from the Governance & Guardrails Control System.
+# Each namespace lists its allowed BASE segments (the segment right after the
+# namespace). Emitted tags may carry a dynamic detail suffix (e.g.
+# "agent:retrieve:{n}", "workflow:classify:8806") — the contract validates the
+# namespace:base prefix, not the dynamic tail. Reconciled 2026-07-08 against the
+# tags ShipSmart-API actually emits.
 
 tags:
   agent:
     - plan
-    - step
-    - tool
-    - retrieve
-    - retrieve_reformulate
-    - retrieve_uncovered
-    - final
-
-  concierge:
-    - greeting
-    - clarify
-    - gather
-    - dispatch
-    - dispatch_llm_degraded
+    - step            # agent:step{n}
+    - tool            # agent:tool:{name}
+    - retrieve        # agent:retrieve:{n|reformulate|uncovered|capped|rejected}
+    - max_steps
+    - fallback        # agent:fallback:text
 
   compliance:
     - plan
-    - structural
-    - investigate
-    - critique
-    - verdict
+    - investigate     # compliance:investigate:{area}
+    - structural      # compliance:structural:{rule}
+    - summarized
+    - verdict         # compliance:verdict:{verdict}
+
+  concierge:
+    - plan
+    - greeting
+    - ready
+    - reply_to
+    - correction
+    - intent          # concierge:intent:{intent}
+    - dispatch        # concierge:dispatch:{intent|llm_degraded|summary_fallback}
+    - scope           # concierge:scope:domestic_only
+    - compliance      # concierge:compliance:explicit_skipped
 
   workflow:
     - start
-    - classify
-    - landed_cost
-    - routing
-    - compliance
-    - documentation
-    - interrupt
-    - review
+    - classify        # workflow:classify:{hs|low_confidence}
     - complete
-    - block
+    - compliance      # workflow:compliance:explicit_skipped
+    - interrupt       # workflow:interrupt:human_review
+    - landed_cost     # workflow:landed_cost:{computed|trade_preference}
+    - resume
+    - review          # workflow:review:determination
+    - routing         # workflow:routing:no_quotes
+    - docs            # workflow:docs:generated:{n}
+    - blocked
 
-  # Guardrail controls (release-gated) — coverage.yml maps each to eval case ids.
+  budget:
+    - trimmed         # budget:trimmed:{n}
+
+  # Guardrail controls (release-gated). The first group is emitted today; the
+  # second is the control vocabulary coverage.yml maps to eval cases and that
+  # ships as the request-boundary / tool-policy phases land (F3–F6).
   guardrail:
-    - injection            # §5.2/§5.3 prompt-injection detected/blocked
-    - misuse_refused       # §7.1 dual-use / evasion refusal + compliant redirect
-    - state_unsigned       # §7.2 client-echoed state failed HMAC verification
-    - pii                  # §5.2/§7.5 PII redaction in logs/traces
-    - leak                 # §5.3 system-prompt / fence leak on output
-    - tool_denied          # §5.4/§5.5 tool policy denied a call before execution
-    - structured_output_invalid  # §5.3 model output failed its JSON schema
-    - source_coverage_failure    # §5.7 answer lacked required source coverage
-    - tenant_isolation     # §6.2 cross-tenant retrieval blocked (conditional)
-    - embedding_version    # §7.3 embedding model/version compatibility guard
+    # emitted today
+    - blocked
+    - blocked_injection
+    - neutralized_input
+    - sanitized_chunk
+    - sanitized_reference
+    - structured_output_invalid   # output validator fallback (F1)
+    - structured_output_retry     # output validator retry (F1)
+    - refused
+    # planned control tags (coverage.yml)
+    - injection
+    - misuse_refused
+    - state_unsigned
+    - pii
+    - leak
+    - tool_denied
+    - source_coverage_failure
+    - tenant_isolation
+    - embedding_version
