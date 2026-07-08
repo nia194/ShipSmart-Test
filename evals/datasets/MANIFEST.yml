@@ -5,6 +5,20 @@
 #   uv run python -c "from evals.manifest import compute_sha256 as h; print(h('smoke/foundation.v1.jsonl'))"
 
 suites:
+  rag/policy:
+    layer: 2
+    active_version: v1.0
+    file: rag/policy.v1.jsonl
+    sha256: b2ea3af9321463592cbd22c92c2391a815d68b588ee99f0435e903d87361e108
+    case_count: 5
+    last_reviewed: "2026-07-08"
+    note: >
+      Layer-2 RAG-quality cases grounded on the real ShipSmart-API corpus
+      (relevant_doc_ids/must_cite_any reference actual data/documents/* files,
+      asserted by contract/test_rag_corpus_refs.py). The CI lane runs them
+      through the deterministic stub SUT; the live-retriever SUT (semantic
+      recall/precision) runs in the nightly/release lanes.
+
   smoke/foundation:
     layer: 1
     active_version: v1.0
