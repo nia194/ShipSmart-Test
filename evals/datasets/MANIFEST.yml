@@ -1,0 +1,19 @@
+# Dataset manifest (evals §3.2). Runners load through this, not filenames.
+# Each suite: active version -> file -> sha256 -> case count -> last reviewed.
+# Bumping a dataset is a reviewed diff (new file + new sha256 + new version),
+# never a silent append. To re-record a sha256 after an authored edit:
+#   uv run python -c "from evals.manifest import compute_sha256 as h; print(h('smoke/foundation.v1.jsonl'))"
+
+suites:
+  smoke/foundation:
+    layer: 1
+    active_version: v1.0
+    file: smoke/foundation.v1.jsonl
+    sha256: 9f5c4117484e8e99af415424dbe27440bb17d45d41b631ab466d4156007bd991
+    case_count: 5
+    last_reviewed: "2026-07-07"
+    note: >
+      Foundation self-test suite — exercises the harness (load -> run -> grade ->
+      gate -> trace -> history) end-to-end with the deterministic keyless EchoSUT.
+      Not a product test. Real layer datasets (contract/rag/agent/safety/product)
+      are registered here as their phases land.

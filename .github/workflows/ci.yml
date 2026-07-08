@@ -60,3 +60,20 @@ jobs:
         run: |
           uv sync --dev
           uv run pytest contract/ -q
+
+  evals-ci:
+    # The CI eval lane is keyless + hermetic (EchoSUT, in-memory) and self-
+    # contained, so it needs no sibling checkouts. Zero-failure gate, < 5 min.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Eval harness self-tests
+        run: |
+          uv sync --dev
+          uv run pytest evals/ -q
+      - name: CI eval lane (keyless, zero-failure gate)
+        run: uv run python -m evals.runners.run_lane ci

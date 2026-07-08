@@ -40,6 +40,13 @@ coverage.xml
 # Per-run service logs + PID files for the locally-hosted MCP/API/Java stack.
 .stack/
 
+# ─── Eval run outputs (evals/runners/run_lane.py) ─────────────────────────────
+# The append-only history, regenerated trend, and per-run traces are generated
+# artifacts (CI regenerates them); the reports/ dir is kept via .gitkeep.
+evals/reports/history.jsonl
+evals/reports/trend.md
+evals/reports/traces/
+
 # ─── Env / Secrets ────────────────────────────────────────────────────────────
 .env
 .env.*
