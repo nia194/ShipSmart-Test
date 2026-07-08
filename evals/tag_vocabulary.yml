@@ -67,6 +67,8 @@ tags:
     - structured_output_retry     # output validator retry (F1)
     - refused
     - normalized                  # unicode normalization changed the input (F3)
+    - quarantined_chunk           # ingestion guard rejected a poisoned document (F5)
+    - embedding_version           # startup embedding-compat check failed closed (F5)
     # planned control tags (coverage.yml)
     - injection
     - misuse_refused
@@ -76,4 +78,3 @@ tags:
     - tool_denied
     - source_coverage_failure
     - tenant_isolation
-    - embedding_version

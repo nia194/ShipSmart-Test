@@ -138,3 +138,22 @@ def mcp_tool_names() -> set[str]:
     m = re.search(r"READ_ONLY_TOOL_ALLOWLIST.*?\{(.*?)\}", src, re.S)
     assert m, "READ_ONLY_TOOL_ALLOWLIST not found in ShipSmart-MCP main.py"
     return set(re.findall(r'"([a-z_]+)"', m.group(1)))
+
+
+def api_corpus_refs() -> set[str]:
+    """Every referenceable id for a doc in ShipSmart-API's RAG corpus.
+
+    Layer-2 RAG datasets cite documents by ``relevant_doc_ids``/``must_cite_any``.
+    So a case can be authored against either form the retriever surfaces, this
+    returns BOTH the rel path (``compliance/lithium-batteries-dangerous-goods.md``)
+    and the bare filename (``lithium-batteries-dangerous-goods.md``) for each file
+    under ``data/documents/`` — matching the trusted-source registry's own
+    rel-path-or-bare-filename acceptance in ShipSmart-API.
+    """
+    corpus = API / "data" / "documents"
+    refs: set[str] = set()
+    for path in sorted(corpus.rglob("*")):
+        if path.is_file():
+            refs.add(path.relative_to(corpus).as_posix())
+            refs.add(path.name)
+    return refs
