@@ -82,3 +82,43 @@ def json_schema_required(py_src: str, tool_class: str) -> tuple[set[str], set[st
         else set()
     )
     return required, props
+
+
+# ── ShipSmart-API decision tags + settings flags (evals §4.2 contract) ─────────
+
+_TAG_NAMESPACES = ("agent", "concierge", "compliance", "workflow", "guardrail", "budget")
+# Base must start with [a-z_] (a real tag segment), which excludes log/prose
+# strings like "concierge: dispatch degraded ..." (space after the colon).
+_TAG_LITERAL = re.compile(r"""["'](""" + "|".join(_TAG_NAMESPACES) + r"""):([a-z_][^"']*)["']""")
+
+
+def api_decision_tags() -> set[str]:
+    """Emitted decision-tag prefixes (``namespace:base``) across ShipSmart-API source.
+
+    Scans every ``app/**/*.py`` for tag-shaped string literals in the known
+    namespaces and returns the ``namespace:base`` prefix — the dynamic detail tail
+    (e.g. ``agent:retrieve:{n}`` -> ``agent:retrieve``) is dropped. A fully dynamic
+    base (segment is a ``{var}``) yields ``namespace:*``.
+    """
+    out: set[str] = set()
+    for path in sorted((API / "app").rglob("*.py")):
+        for ns, rest in _TAG_LITERAL.findall(read(path)):
+            base = re.split(r"[:{]", rest, maxsplit=1)[0]
+            out.add(f"{ns}:{base}" if base else f"{ns}:*")
+    return out
+
+
+def api_settings_flags() -> set[str]:
+    """The ``*_enabled`` feature flags declared on ShipSmart-API's Settings."""
+    src = read(API / "app" / "core" / "config.py")
+    return set(re.findall(r"^\s{4}([a-z_]+_enabled)\s*:\s*bool", src, re.M))
+
+
+def env_example_vars(repo: Path) -> set[str]:
+    """UPPER_SNAKE var names assigned in a repo's ``.env.example``."""
+    return set(re.findall(r"^([A-Z][A-Z0-9_]*)=", read(repo / ".env.example"), re.M))
+
+
+def api_test_blob() -> str:
+    """Concatenated ShipSmart-API test source — for 'is this flag gated somewhere' checks."""
+    return "\n".join(read(p) for p in sorted((API / "tests").rglob("*.py")))
