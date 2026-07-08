@@ -1,0 +1,35 @@
+# LLM-as-judge configuration (evals §10). Configurable and pinned.
+#
+# Default provider is OpenAI gpt-4o; Anthropic Claude is supported as an
+# alternate/failover and routes through the API's own LLMRouter (so the judge
+# inherits per-task failover). Temperature is pinned to 0. The judge runs ONLY
+# in the nightly/release lanes, never in CI, and never decides Layer-4 safety.
+#
+# Rubric edits are VERSION BUMPS: every score event records judge_version, so a
+# silent rubric change can never invalidate a historical trend.
+
+judge:
+  provider: openai            # openai | anthropic
+  model: gpt-4o
+  temperature: 0.0
+
+  # Request-time failover (mirrors the app LLM router discipline).
+  fallback:
+    - provider: anthropic
+      model: claude-sonnet-4-5
+    - provider: openai
+      model: gpt-4o-mini
+
+  # Pinned rubric versions — bump on any judge_prompts/*.md edit.
+  rubric_versions:
+    faithfulness: v1
+    answer_relevance: v1
+    refusal_quality: v1
+    explanation_quality: v1
+
+  # Governance (enforced in the judge phase): monthly calibration against human
+  # labels; agreement < 80% freezes the rubric (version bump) before it gates.
+  calibration:
+    cadence: monthly
+    traces_per_rubric: 10
+    min_agreement: 0.80
