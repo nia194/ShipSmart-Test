@@ -122,3 +122,19 @@ def env_example_vars(repo: Path) -> set[str]:
 def api_test_blob() -> str:
     """Concatenated ShipSmart-API test source — for 'is this flag gated somewhere' checks."""
     return "\n".join(read(p) for p in sorted((API / "tests").rglob("*.py")))
+
+
+def api_tool_policy_names() -> set[str]:
+    """Tool names the ShipSmart-API tool-policy registry (DEFAULT_TOOL_POLICIES) governs."""
+    src = read(API / "app" / "security" / "tool_policy.py")
+    m = re.search(r"DEFAULT_TOOL_POLICIES.*?=\s*\{(.*?)\n\}", src, re.S)
+    assert m, "DEFAULT_TOOL_POLICIES not found in ShipSmart-API tool_policy.py"
+    return set(re.findall(r'"([a-z_]+)":\s*ToolCallPolicy', m.group(1)))
+
+
+def mcp_tool_names() -> set[str]:
+    """Tool names ShipSmart-MCP actually serves (its READ_ONLY_TOOL_ALLOWLIST)."""
+    src = read(MCP / "app" / "main.py")
+    m = re.search(r"READ_ONLY_TOOL_ALLOWLIST.*?\{(.*?)\}", src, re.S)
+    assert m, "READ_ONLY_TOOL_ALLOWLIST not found in ShipSmart-MCP main.py"
+    return set(re.findall(r'"([a-z_]+)"', m.group(1)))
