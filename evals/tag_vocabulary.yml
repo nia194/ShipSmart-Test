@@ -1,0 +1,57 @@
+# Canonical decision-tag vocabulary — evals §4.2 decision-tag contract AND the
+# §13 coverage.yml join key. A tag emitted anywhere in the code that is not
+# listed here is a drift failure (the contract test fails). A tag referenced by
+# coverage.yml that is not listed here is also a failure.
+#
+# Namespaces mirror the decision paths the services already emit
+# (agent:* / concierge:* / compliance:* / workflow:*) plus the guardrail:*
+# controls from the Governance & Guardrails Control System.
+
+tags:
+  agent:
+    - plan
+    - step
+    - tool
+    - retrieve
+    - retrieve_reformulate
+    - retrieve_uncovered
+    - final
+
+  concierge:
+    - greeting
+    - clarify
+    - gather
+    - dispatch
+    - dispatch_llm_degraded
+
+  compliance:
+    - plan
+    - structural
+    - investigate
+    - critique
+    - verdict
+
+  workflow:
+    - start
+    - classify
+    - landed_cost
+    - routing
+    - compliance
+    - documentation
+    - interrupt
+    - review
+    - complete
+    - block
+
+  # Guardrail controls (release-gated) — coverage.yml maps each to eval case ids.
+  guardrail:
+    - injection            # §5.2/§5.3 prompt-injection detected/blocked
+    - misuse_refused       # §7.1 dual-use / evasion refusal + compliant redirect
+    - state_unsigned       # §7.2 client-echoed state failed HMAC verification
+    - pii                  # §5.2/§7.5 PII redaction in logs/traces
+    - leak                 # §5.3 system-prompt / fence leak on output
+    - tool_denied          # §5.4/§5.5 tool policy denied a call before execution
+    - structured_output_invalid  # §5.3 model output failed its JSON schema
+    - source_coverage_failure    # §5.7 answer lacked required source coverage
+    - tenant_isolation     # §6.2 cross-tenant retrieval blocked (conditional)
+    - embedding_version    # §7.3 embedding model/version compatibility guard

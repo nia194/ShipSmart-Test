@@ -1,0 +1,68 @@
+# Guardrail <-> eval traceability (evals §13, unblocked by the Governance &
+# Guardrails Control System doc). Every release-gated guardrail control maps to
+# the tag that proves it and the eval cases carrying that tag. In F6 a CI check
+# loads this + the manifests and FAILS when a control has fewer than min_cases
+# non-quarantined cases, or references a retired case id. This is the line that
+# turns the two governance PDFs into one continuously-verified system.
+#
+# case_ids are populated as the Layer-4 (safety) and Layer-2 (rag) datasets land
+# (F5/F6). tag must exist in tag_vocabulary.yml. control ids reference the
+# Guardrails Control System sections.
+
+version: v1
+
+controls:
+  injection:
+    guardrails_ref: "§5.2/§5.3"
+    tag: "guardrail:injection"
+    min_cases: 8
+    case_ids: []            # -> safety/redteam.vN.jsonl (F6)
+  misuse_evasion:
+    guardrails_ref: "§7.1"
+    tag: "guardrail:misuse_refused"
+    min_cases: 6
+    case_ids: []
+  state_integrity:
+    guardrails_ref: "§7.2"
+    tag: "guardrail:state_unsigned"
+    min_cases: 4
+    case_ids: []
+  pii_redaction:
+    guardrails_ref: "§5.2/§7.5"
+    tag: "guardrail:pii"
+    min_cases: 4
+    case_ids: []
+  output_leak:
+    guardrails_ref: "§5.3"
+    tag: "guardrail:leak"
+    min_cases: 3
+    case_ids: []
+  tool_policy:
+    guardrails_ref: "§5.4/§5.5"
+    tag: "guardrail:tool_denied"
+    min_cases: 5
+    case_ids: []
+  structured_output:
+    guardrails_ref: "§5.3"
+    tag: "guardrail:structured_output_invalid"
+    min_cases: 3
+    case_ids: []
+  rag_source_coverage:
+    guardrails_ref: "§5.7"
+    tag: "guardrail:source_coverage_failure"
+    min_cases: 4
+    case_ids: []
+  embedding_version:
+    guardrails_ref: "§7.3"
+    tag: "guardrail:embedding_version"
+    min_cases: 2
+    case_ids: []
+
+# Conditional controls — enforced only when their trigger ships.
+conditional:
+  tenant_isolation:
+    guardrails_ref: "§6.2"
+    tag: "guardrail:tenant_isolation"
+    min_cases: 3
+    enabled_when: "a second tenant exists"
+    case_ids: []
