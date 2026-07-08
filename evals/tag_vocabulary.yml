@@ -51,6 +51,7 @@ tags:
 
   budget:
     - trimmed         # budget:trimmed:{n}
+    - exceeded        # budget:exceeded (per-session LLM/tool/token ceiling, F3)
 
   # Guardrail controls (release-gated). The first group is emitted today; the
   # second is the control vocabulary coverage.yml maps to eval cases and that
@@ -65,6 +66,7 @@ tags:
     - structured_output_invalid   # output validator fallback (F1)
     - structured_output_retry     # output validator retry (F1)
     - refused
+    - normalized                  # unicode normalization changed the input (F3)
     # planned control tags (coverage.yml)
     - injection
     - misuse_refused
