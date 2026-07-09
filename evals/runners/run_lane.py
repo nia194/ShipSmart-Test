@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ..case_model import load_jsonl
+from ..graders import llm_judge
 from ..manifest import load_manifest, verify
 from ..protocol import EchoSUT, SystemUnderTest
 from .merge_reports import regenerate_trend
@@ -51,6 +52,9 @@ def run_lane(lane: str, *, write: bool = True) -> dict:
     run_id = f"{int(time.time())}-{lane}"
     shas = _repo_shas()
     entries = load_manifest()
+    # The judge runs only where the lane allows model graders AND a provider key
+    # exists — so CI (and any keyless run) stays deterministic and free.
+    judge_on = bool(LANE_CONFIG[lane]["model_graders"] and llm_judge.available())
 
     suite_summaries: list[dict] = []
     all_traces = []
@@ -59,7 +63,13 @@ def run_lane(lane: str, *, write: bool = True) -> dict:
         verify(entry)
         cases = load_jsonl(entry.path)
         result = run_suite(
-            entry, cases, _sut_for(entry.suite), lane=lane, run_id=run_id, repo_shas=shas
+            entry,
+            cases,
+            _sut_for(entry.suite),
+            lane=lane,
+            run_id=run_id,
+            repo_shas=shas,
+            has_judge_client=judge_on,
         )
         all_traces.extend(result.traces)
         overall_pass = overall_pass and result.gate.passed
