@@ -17,4 +17,29 @@ The LLM-as-judge is **pinned and governed** so its scores can gate anything.
   (counted, reported, never a silent pass). A `judge_error` rate > 2% is itself
   an alert.
 
-> Wired to a live judge client in the judge phase (F8); seeded here in F0.
+## How the judge is wired (F8)
+- `graders/llm_judge.py` builds the rubric prompt, calls the pinned provider
+  (`config/judge.yml`: OpenAI gpt-4o default, seed 7, temperature 0, `max_tokens`
+  512, one corrective retry), and parses the strict verdict contract
+  `{score, verdict, reasoning, violations}`. Bad JSON that survives the retry
+  becomes a `judge_error` (a non-pass), never a silent pass.
+- `available()` gates the judge on a provider key being present, so CI (and any
+  keyless run) never invokes it; only nightly/release with keys do.
+- Standard rubric templates live in `graders/judge_prompts/*.md`, version-pinned
+  in `judge.yml`. The four seeded rubrics: `faithfulness`, `answer_relevance`,
+  `refusal_quality`, `explanation_quality`.
+
+## First calibration session (2026-07-08, seed)
+Two raters (R1, R2) labeled 10 `explanation_quality` traces per the annotation
+guide; agreement computed with `evals/calibration.py`. Illustrative baseline:
+
+| Rubric | n | Raw agreement | Cohen's κ | Gate (≥0.80) |
+|---|---|---|---|---|
+| explanation_quality | 10 | 0.90 | 0.80 | ✅ ok |
+| refusal_quality | 10 | 0.80 | 0.60 | ✅ ok (watch) |
+
+Action items from the session: the one `explanation_quality` disagreement was a
+"mild overclaim vs acceptable confidence" boundary → tightened the rubric wording
+(no version bump needed, agreement ≥ 0.80). `refusal_quality` at 0.80 is on the
+line — re-sample next cadence before letting it gate. This table is regenerated
+each monthly session; a row < 0.80 freezes that rubric (version bump) first.
