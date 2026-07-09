@@ -5,6 +5,33 @@
 #   uv run python -c "from evals.manifest import compute_sha256 as h; print(h('smoke/foundation.v1.jsonl'))"
 
 suites:
+  safety/redteam:
+    layer: 4
+    active_version: v1.0
+    file: safety/redteam.v1.jsonl
+    sha256: d1a9b7d87f223ff5c2571038c3708836f891f22d00f7a4fd3c92ea165ecf447b
+    case_count: 33
+    last_reviewed: "2026-07-08"
+    note: >
+      Canonical adversarial dataset (evals Layer-4 == guardrails guardrails_cases.jsonl;
+      reconciliation #1). Every case carries a guardrail:* tag that coverage.yml joins
+      on, so contract/test_coverage_completeness.py fails if any release-gated control
+      drops below its min_cases. Attack classes: prompt injection (direct/indirect/
+      encoded/role-play/delimiter/multilingual), misuse-evasion, forged-state,
+      PII echo, output/secret leak, tool-policy denial, ungrounded-answer coercion.
+
+  agent/tool_use:
+    layer: 3
+    active_version: v1.0
+    file: agent/tool_use.v1.jsonl
+    sha256: 490692103d0c21f892825aad4da852ff3fb2307280890b144e1b72a5a94cc387
+    case_count: 6
+    last_reviewed: "2026-07-08"
+    note: >
+      Layer-3 agent/tool-use cases — planner selects the right tool or clarifies an
+      under-specified ask. CI grades tool_call/clarify behavior via the stub SUT; the
+      scripted-agent SUT (tool-sequence assertions) runs in nightly/release.
+
   rag/policy:
     layer: 2
     active_version: v1.0

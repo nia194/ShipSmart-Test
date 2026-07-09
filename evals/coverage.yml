@@ -1,66 +1,93 @@
 # Guardrail <-> eval traceability (evals §13, unblocked by the Governance &
 # Guardrails Control System doc). Every release-gated guardrail control maps to
-# the tag that proves it and the eval cases carrying that tag. In F6 a CI check
-# loads this + the manifests and FAILS when a control has fewer than min_cases
-# non-quarantined cases, or references a retired case id. This is the line that
-# turns the two governance PDFs into one continuously-verified system.
+# the tag that proves it and how that control is verified. This is the line that
+# turns the two governance PDFs into one continuously-verified system:
+# contract/test_coverage_completeness.py loads this + the dataset manifests and
+# FAILS the build when a control is under-covered or points at a retired case.
 #
-# case_ids are populated as the Layer-4 (safety) and Layer-2 (rag) datasets land
-# (F5/F6). tag must exist in tag_vocabulary.yml. control ids reference the
-# Guardrails Control System sections.
+# Each control declares a `kind`:
+#   behavioral — proven by adversarial eval CASES. The check counts non-flaky
+#                cases (across every dataset) carrying `tag` and fails if the
+#                count < min_cases or if any listed case_id no longer exists.
+#   structural — proven by a CODE test, not a prompt (e.g. a startup compat
+#                check or an output-schema validator). The check asserts the
+#                `verified_by` ShipSmart-API test exists and the module that
+#                emits `tag` still defines it. min_cases is informational.
+#
+# `tag` must exist in tag_vocabulary.yml. `guardrails_ref` points at the
+# Governance & Guardrails Control System section the control implements.
 
 version: v1
 
 controls:
   injection:
+    kind: behavioral
     guardrails_ref: "§5.2/§5.3"
     tag: "guardrail:injection"
     min_cases: 8
-    case_ids: []            # -> safety/redteam.vN.jsonl (F6)
+    case_ids: [rt-inj-0001, rt-inj-0002, rt-inj-0003, rt-inj-0004, rt-inj-0005,
+               rt-inj-0006, rt-inj-0007, rt-inj-0008]
+
   misuse_evasion:
+    kind: behavioral
     guardrails_ref: "§7.1"
     tag: "guardrail:misuse_refused"
     min_cases: 6
-    case_ids: []
+    case_ids: [rt-mis-0001, rt-mis-0002, rt-mis-0003, rt-mis-0004, rt-mis-0005, rt-mis-0006]
+
   state_integrity:
+    kind: behavioral
     guardrails_ref: "§7.2"
     tag: "guardrail:state_unsigned"
     min_cases: 4
-    case_ids: []
+    case_ids: [rt-state-0001, rt-state-0002, rt-state-0003, rt-state-0004]
+
   pii_redaction:
+    kind: behavioral
     guardrails_ref: "§5.2/§7.5"
     tag: "guardrail:pii"
     min_cases: 4
-    case_ids: []
+    case_ids: [rt-pii-0001, rt-pii-0002, rt-pii-0003, rt-pii-0004]
+
   output_leak:
+    kind: behavioral
     guardrails_ref: "§5.3"
     tag: "guardrail:leak"
     min_cases: 3
-    case_ids: []
+    case_ids: [rt-leak-0001, rt-leak-0002, rt-leak-0003]
+
   tool_policy:
+    kind: behavioral
     guardrails_ref: "§5.4/§5.5"
     tag: "guardrail:tool_denied"
     min_cases: 5
-    case_ids: []
-  structured_output:
-    guardrails_ref: "§5.3"
-    tag: "guardrail:structured_output_invalid"
-    min_cases: 3
-    case_ids: []
+    case_ids: [rt-tool-0001, rt-tool-0002, rt-tool-0003, rt-tool-0004, rt-tool-0005, rt-inj-0006]
+
   rag_source_coverage:
+    kind: behavioral
     guardrails_ref: "§5.7"
     tag: "guardrail:source_coverage_failure"
     min_cases: 4
-    case_ids: []
+    case_ids: [rt-cov-0001, rt-cov-0002, rt-cov-0003, rag-policy-0004]
+
+  structured_output:
+    kind: structural
+    guardrails_ref: "§5.3"
+    tag: "guardrail:structured_output_invalid"
+    min_cases: 3
+    verified_by: "tests/test_typed_outputs.py"   # ShipSmart-API output validator
+
   embedding_version:
+    kind: structural
     guardrails_ref: "§7.3"
     tag: "guardrail:embedding_version"
     min_cases: 2
-    case_ids: []
+    verified_by: "tests/test_rag_governance.py"   # ShipSmart-API startup compat check
 
 # Conditional controls — enforced only when their trigger ships.
 conditional:
   tenant_isolation:
+    kind: behavioral
     guardrails_ref: "§6.2"
     tag: "guardrail:tenant_isolation"
     min_cases: 3
