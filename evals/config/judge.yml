@@ -11,7 +11,10 @@
 judge:
   provider: openai            # openai | anthropic
   model: gpt-4o
-  temperature: 0.0
+  temperature: 0.0            # pinned — the judge must be as deterministic as possible
+  seed: 7                     # OpenAI seed for reproducibility
+  max_tokens: 512
+  max_retries: 1              # invalid JSON -> ONE corrective retry -> judge_error
 
   # Request-time failover (mirrors the app LLM router discipline).
   fallback:
