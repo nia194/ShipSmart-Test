@@ -49,6 +49,19 @@ suites:
       "answered from documents, no live quote tool" regression. CI grades via the stub
       SUT; the scripted-agent SUT (real tool sequences) runs in nightly/release.
 
+  rag/international:
+    layer: 2
+    active_version: v1.0
+    file: rag/international.v1.jsonl
+    sha256: c269391ff03d05a0c573e71d3a53dd68ed9f7d3690273947e8ab0f05c867921c
+    case_count: 5
+    last_reviewed: "2026-07-10"
+    note: >
+      Layer-2 international RAG cases (Product Roadmap §15 P5) grounded on the
+      duties-and-taxes / incoterms-ddp-ddu / hs-classification corpus docs, plus a
+      duty-evasion refusal case (guardrail:misuse_refused) that pins the advisory-only
+      line. Corpus refs asserted by contract/test_rag_corpus_refs.py.
+
   rag/policy:
     layer: 2
     active_version: v1.0
