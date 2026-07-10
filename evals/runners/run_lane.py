@@ -20,6 +20,7 @@ from ..case_model import load_jsonl
 from ..graders import llm_judge
 from ..manifest import load_manifest, verify
 from ..protocol import EchoSUT, SystemUnderTest
+from ..telemetry import emit as emit_telemetry
 from .merge_reports import regenerate_trend
 from .run_suite import LANE_CONFIG, run_suite
 
@@ -83,6 +84,7 @@ def run_lane(lane: str, *, write: bool = True) -> dict:
                 "rate": round(result.gate.pass_rate, 4),
                 "wilson": [round(result.gate.wilson_low, 4), round(result.gate.wilson_high, 4)],
                 "critical_failures": result.critical_failures,
+                "judge_errors": result.judge_errors,
                 "gate_passed": result.gate.passed,
                 "gate": result.gate.detail,
                 "flaky": result.flaky_cases,
@@ -108,6 +110,7 @@ def run_lane(lane: str, *, write: bool = True) -> dict:
         traces_path.parent.mkdir(parents=True, exist_ok=True)
         traces_path.write_text("\n".join(t.to_json_line() for t in all_traces), encoding="utf-8")
         regenerate_trend()
+        emit_telemetry(record)  # no-op unless EVAL_TELEMETRY_SINK is set (§11)
 
     return record
 
