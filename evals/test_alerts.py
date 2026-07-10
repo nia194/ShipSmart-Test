@@ -8,7 +8,15 @@ from evals.runners import run_lane
 
 
 def _record(
-    lane: str, *, rate: float, n: int = 30, gate_passed: bool = True, judge_errors: int = 0
+    lane: str,
+    *,
+    rate: float,
+    n: int = 30,
+    gate_passed: bool = True,
+    judge_errors: int = 0,
+    judge_score_avg=None,
+    cost_usd: float = 0.0,
+    suite: str = "safety/redteam",
 ):
     p = round(rate * n)
     return {
@@ -17,7 +25,7 @@ def _record(
         "overall_pass": gate_passed,
         "suites": [
             {
-                "suite": "safety/redteam",
+                "suite": suite,
                 "layer": 4,
                 "n": n,
                 "pass": p,
@@ -27,6 +35,9 @@ def _record(
                 "gate_passed": gate_passed,
                 "gate": "zero-critical-failure: detail",
                 "flaky": [],
+                "judge_score_avg": judge_score_avg,
+                "cost_usd": cost_usd,
+                "p95_latency_ms": 1.0,
             }
         ],
     }
@@ -86,11 +97,30 @@ def test_empty_history_is_quiet():
     assert evaluate_history([]) == []
 
 
+def test_low_judge_score_average_warns():
+    records = [_record("nightly", rate=1.0, judge_score_avg=3.5)]  # < 4.0/5
+    alerts = evaluate_history(records)
+    assert len(alerts) == 1 and "judge score avg" in alerts[0].message
+
+
+def test_healthy_judge_score_is_quiet():
+    assert evaluate_history([_record("nightly", rate=1.0, judge_score_avg=4.6)]) == []
+
+
+def test_cost_spike_warns_against_trailing_mean():
+    records = [_record("nightly", rate=1.0, cost_usd=0.10) for _ in range(3)]
+    records.append(_record("nightly", rate=1.0, cost_usd=0.20))  # +100% vs 0.10 mean
+    alerts = evaluate_history(records)
+    assert any("budget review" in a.message for a in alerts)
+
+
 # ── judge_errors flows into the lane record ───────────────────────────────────
-def test_lane_record_carries_judge_errors():
+def test_lane_record_carries_judge_errors_and_aggregates():
     record = run_lane.run_lane("ci", write=False)
-    assert all("judge_errors" in s for s in record["suites"])
-    assert all(s["judge_errors"] == 0 for s in record["suites"])  # keyless CI: judge never ran
+    for s in record["suites"]:
+        assert s["judge_errors"] == 0  # keyless CI: judge never ran
+        assert s["judge_score_avg"] is None  # no judge scores without a client
+        assert s["cost_usd"] == 0.0 and "p95_latency_ms" in s
 
 
 # ── telemetry sink (§11, optional) ────────────────────────────────────────────

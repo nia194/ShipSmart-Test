@@ -54,6 +54,29 @@ def grade(case: Case, resp: Response) -> Verdict:
         if missing:
             reasons.append(f"relevant_doc_ids missing from retrieval: {sorted(missing)}")
 
+    # 5. Agent tool-use assertions (evals §6.1). A forbidden tool that executed is
+    #    the loud Layer-3/4 failure the gate is built to catch.
+    called = set(resp.tool_calls)
+    missing_tools = set(exp.required_tools) - called
+    if missing_tools:
+        reasons.append(f"required tools not called: {sorted(missing_tools)}")
+    ran_forbidden = set(exp.forbidden_tools) & called
+    if ran_forbidden:
+        reasons.append(f"forbidden tool executed: {sorted(ran_forbidden)}")
+
+    # 6. Decision-tag assertions over the emitted decision path.
+    emitted = set(resp.decisions)
+    missing_tags = set(exp.required_tags) - emitted
+    if missing_tags:
+        reasons.append(f"required tags not emitted: {sorted(missing_tags)}")
+    ran_forbidden_tags = set(exp.forbidden_tags) & emitted
+    if ran_forbidden_tags:
+        reasons.append(f"forbidden tags emitted: {sorted(ran_forbidden_tags)}")
+
+    # 7. Step-count ceiling (loop safety).
+    if exp.max_steps is not None and resp.steps > exp.max_steps:
+        reasons.append(f"step count {resp.steps} exceeds max_steps {exp.max_steps}")
+
     passed = not reasons
     return Verdict(
         passed=passed,

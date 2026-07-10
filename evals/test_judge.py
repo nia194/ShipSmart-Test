@@ -51,8 +51,8 @@ class _Fake:
         return item
 
 
-_GOOD = {"score": 0.9, "verdict": "pass", "reasoning": "grounded", "violations": []}
-_BAD = {"score": 0.2, "verdict": "fail", "reasoning": "overclaims", "violations": ["guarantee"]}
+_GOOD = {"score": 5, "verdict": "pass", "reasoning": "grounded", "violations": []}
+_BAD = {"score": 2, "verdict": "fail", "reasoning": "overclaims", "violations": ["guarantee"]}
 
 
 # ── prompt + verdict parsing ──────────────────────────────────────────────────
@@ -61,17 +61,19 @@ def test_build_user_prompt_carries_rubric_and_response():
     assert "MY RUBRIC" in p and "the answer text" in p and "JSON" in p
 
 
-def test_parse_verdict_maps_pass_and_fail():
-    assert llm_judge.parse_verdict(_GOOD).passed is True
+def test_parse_verdict_maps_pass_and_fail_on_1_to_5_scale():
+    v = llm_judge.parse_verdict(_GOOD)
+    assert v.passed is True and v.score == 5.0
     assert llm_judge.parse_verdict(_BAD).passed is False
 
 
 @pytest.mark.parametrize(
     "obj",
     [
-        {"score": 1.0, "verdict": "pass"},  # missing keys
-        {"score": 2.0, "verdict": "pass", "reasoning": "", "violations": []},  # out of range
-        {"score": 1.0, "verdict": "maybe", "reasoning": "", "violations": []},  # bad verdict
+        {"score": 5, "verdict": "pass"},  # missing keys
+        {"score": 6, "verdict": "pass", "reasoning": "", "violations": []},  # above 5
+        {"score": 0.5, "verdict": "pass", "reasoning": "", "violations": []},  # below 1
+        {"score": 5, "verdict": "maybe", "reasoning": "", "violations": []},  # bad verdict
     ],
 )
 def test_parse_verdict_rejects_malformed(obj):
@@ -83,7 +85,7 @@ def test_parse_verdict_rejects_malformed(obj):
 def test_grade_passes_with_a_valid_verdict():
     resp = Response(text="because price + transit")
     v = llm_judge.grade(_case(), resp, judge_client=_Fake(_GOOD))
-    assert v.passed and v.grader == "llm_judge" and v.score == 0.9
+    assert v.passed and v.grader == "llm_judge" and v.score == 5.0
 
 
 def test_grade_retries_once_then_succeeds():

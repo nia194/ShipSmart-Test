@@ -77,3 +77,19 @@ jobs:
           uv run pytest evals/ -q
       - name: CI eval lane (keyless, zero-failure gate)
         run: uv run python -m evals.runners.run_lane ci
+
+  dependency-audit:
+    # Dependency hygiene (guardrails §5.9): surface vulnerable deps. Report-only
+    # (does not fail the build on a pre-existing advisory) so it informs without
+    # blocking; triage happens on the report.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: pip-audit (report-only)
+        run: |
+          uv sync --dev
+          uvx pip-audit || true

@@ -39,13 +39,15 @@ suites:
     layer: 3
     active_version: v1.0
     file: agent/tool_use.v1.jsonl
-    sha256: 490692103d0c21f892825aad4da852ff3fb2307280890b144e1b72a5a94cc387
-    case_count: 6
-    last_reviewed: "2026-07-08"
+    sha256: 873f9cf8f3ed99b5493f4303ac103b4c70c741746fda5ad957ab65063e12be4e
+    case_count: 7
+    last_reviewed: "2026-07-09"
     note: >
-      Layer-3 agent/tool-use cases — planner selects the right tool or clarifies an
-      under-specified ask. CI grades tool_call/clarify behavior via the stub SUT; the
-      scripted-agent SUT (tool-sequence assertions) runs in nightly/release.
+      Layer-3 agent/tool-use cases (evals §6.1) — expected carries tool-selection
+      assertions: required_tools / forbidden_tools (a forbidden tool executing fails
+      loudly), max_steps, and required/forbidden decision tags. Includes the pinned
+      "answered from documents, no live quote tool" regression. CI grades via the stub
+      SUT; the scripted-agent SUT (real tool sequences) runs in nightly/release.
 
   rag/policy:
     layer: 2

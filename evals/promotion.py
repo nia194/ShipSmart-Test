@@ -41,9 +41,22 @@ def _sample_key(event: dict) -> str:
     )
 
 
-def should_sample(event: dict, *, rate: float = DEFAULT_SAMPLE_RATE) -> bool:
-    """Deterministic hash-based shadow sampling; feedback:down is always in."""
+def is_priority_signal(event: dict) -> bool:
+    """The §9.2 always-sample signals: a user complaint or any guardrail firing.
+
+    Covers user thumbs-down (``feedback:down``), any ``guardrail:*`` block/refusal
+    tag in the decision path, and structured-output retries (also a ``guardrail:*``
+    tag) — the events most likely to be a real, promotable failure.
+    """
     if str(event.get("intent", "")).startswith("feedback:down"):
+        return True
+    tags = [*event.get("decisions", []), *event.get("guardrail_events", [])]
+    return any(str(t).startswith("guardrail:") for t in tags)
+
+
+def should_sample(event: dict, *, rate: float = DEFAULT_SAMPLE_RATE) -> bool:
+    """Deterministic hash-based shadow sampling; priority signals are always in."""
+    if is_priority_signal(event):
         return True
     digest = hashlib.sha256(_sample_key(event).encode()).hexdigest()
     return int(digest[:8], 16) / _HASH_SPACE < rate
@@ -58,7 +71,9 @@ class ReviewItem:
     intent: str
     decisions: list[str] = field(default_factory=list)
     feedback_comment: str = ""
-    status: str = "pending"  # pending -> promoted | dismissed (set by the reviewer)
+    tags: list[str] = field(default_factory=list)  # feedback tags (§6.6 FeedbackEvent)
+    # triage_status (§6.6): new -> reviewed -> promoted | rejected (set by the reviewer).
+    status: str = "new"
 
     def to_json_line(self) -> str:
         return json.dumps(asdict(self), sort_keys=True)
@@ -77,6 +92,7 @@ def build_review_queue(
                     intent=str(event.get("intent", "")),
                     decisions=list(event.get("decisions", [])),
                     feedback_comment=str(event.get("feedback_comment", "")),
+                    tags=list(event.get("feedback_tags", [])),
                 )
             )
     return items

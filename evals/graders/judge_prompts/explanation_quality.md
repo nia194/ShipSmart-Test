@@ -10,9 +10,9 @@ level, constraints) tied to this shipment, and does not overclaim ("guaranteed",
 **fail** when it fabricates a reason, gives a generic non-explanation, or makes a
 guarantee the system cannot back (a price/compliance claim it did not verify).
 
-Scoring: 1.0 specific + honest · 0.5 partially specific or mildly overclaiming ·
-0.0 fabricated reasoning or an unbacked guarantee. `violations` lists each
-fabricated or overclaimed statement.
+Scoring (1–5): 5 specific + honest · 3 partially specific or mildly overclaiming ·
+1 fabricated reasoning or an unbacked guarantee. `violations` lists each fabricated
+or overclaimed statement.
 
 > An explanation that asserts a booking/price/compliance guarantee is always a
 > fail — the model is advisory (see §5.6); the Orchestrator is the source of truth.

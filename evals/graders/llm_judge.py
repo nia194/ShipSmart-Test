@@ -70,10 +70,13 @@ def load_judge_config(path: str | Path = JUDGE_CONFIG_PATH) -> JudgeConfig:
 
 
 # ── Structured verdict contract (CI-stable, parse-validated) — evals §10 ───────
+# score is a 1-5 quality scale (§10); verdict is the independent pass/fail.
 VERDICT_SCHEMA_KEYS = {"score", "verdict", "reasoning", "violations"}
+SCORE_MIN, SCORE_MAX = 1.0, 5.0
+JUDGE_SCORE_ALERT_FLOOR = 4.0  # Layer-5 trend alert fires below this average (§11)
 _CONTRACT_HINT = (
-    'Return ONLY JSON: {"score": 0.0-1.0, "verdict": "pass"|"fail", '
-    '"reasoning": "<=2 sentences", "violations": ["..."]}'
+    'Return ONLY JSON: {"score": 1-5, "verdict": "pass"|"fail", '
+    '"reasoning": "<=60 words, cite the specific claim/chunk", "violations": ["..."]}'
 )
 _CORRECTIVE = "\n\nYour previous reply was not valid JSON matching the contract. " + _CONTRACT_HINT
 _SYSTEM = (
@@ -107,8 +110,8 @@ def parse_verdict(obj: dict) -> Verdict:
     if not VERDICT_SCHEMA_KEYS.issubset(obj):
         raise ValueError(f"judge_error: verdict missing keys {VERDICT_SCHEMA_KEYS - set(obj)}")
     score = float(obj["score"])
-    if not 0.0 <= score <= 1.0:
-        raise ValueError(f"judge_error: score {score} out of [0,1]")
+    if not SCORE_MIN <= score <= SCORE_MAX:
+        raise ValueError(f"judge_error: score {score} out of [{SCORE_MIN},{SCORE_MAX}]")
     if obj["verdict"] not in {"pass", "fail"}:
         raise ValueError(f"judge_error: verdict {obj['verdict']!r} not pass/fail")
     return Verdict(
