@@ -11,9 +11,11 @@ ShipSmart-Web, and the sampler/queue here.
    PII-redacted at build time. The Web client (`src/lib/feedback-api.ts`) is
    fire-and-forget: feedback never breaks the surface that asked for it.
 2. **Shadow sampling.** `evals/promotion.py::build_review_queue` samples the
-   event stream **deterministically** (hash-based, auditable — no seed drift):
-   every `feedback:down` event, plus `DEFAULT_SAMPLE_RATE` (5%) of the rest.
-   Candidates append to `reports/review_queue.jsonl` (gitignored).
+   event stream **deterministically** (hash-based, auditable — no seed drift).
+   The §9.2 priority signals are always sampled — a `feedback:down` complaint or
+   any `guardrail:*` firing in the decision path (a block/refusal/structured-output
+   retry) — plus `DEFAULT_SAMPLE_RATE` (5%) of the remaining traffic. Candidates
+   append to `reports/review_queue.jsonl` (gitignored).
 3. **Weekly review.** A human works the queue with the
    [annotation guide](./annotation-guide.md): label the failure category +
    severity, decide `promoted` or `dismissed`.

@@ -26,6 +26,16 @@ def test_negative_feedback_is_always_sampled():
     assert promotion.should_sample(_event("feedback:down:wrong_answer"), rate=0.0)
 
 
+def test_guardrail_firings_are_always_sampled():
+    # Any guardrail:* tag in the decision path is a §9.2 priority signal.
+    ev = _event("agent:query")
+    ev["decisions"] = ["agent:plan", "guardrail:injection"]
+    assert promotion.is_priority_signal(ev) and promotion.should_sample(ev, rate=0.0)
+    ev2 = _event("agent:query")
+    ev2["guardrail_events"] = ["guardrail:structured_output_retry"]
+    assert promotion.should_sample(ev2, rate=0.0)
+
+
 def test_sampling_is_deterministic_and_rate_bounded():
     events = [_event("agent:query", request_id=f"r{i}") for i in range(400)]
     picked_a = [e["request_id"] for e in events if promotion.should_sample(e, rate=0.05)]
@@ -47,7 +57,7 @@ def test_build_review_queue_carries_the_redacted_comment():
     item = items[0]
     assert item.intent == "feedback:down:wrong_answer"
     assert item.feedback_comment == "price was wrong for [EMAIL]"
-    assert item.status == "pending" and len(item.key) == 16
+    assert item.status == "new" and len(item.key) == 16
 
 
 def test_write_review_queue_appends_jsonl(tmp_path):
@@ -56,7 +66,7 @@ def test_write_review_queue_appends_jsonl(tmp_path):
     promotion.write_review_queue(items, path)
     promotion.write_review_queue(items, path)  # append, not overwrite
     lines = path.read_text(encoding="utf-8").strip().splitlines()
-    assert len(lines) == 2 and json.loads(lines[0])["status"] == "pending"
+    assert len(lines) == 2 and json.loads(lines[0])["status"] == "new"
 
 
 # ── promotion produces valid, provenance-tagged cases ─────────────────────────

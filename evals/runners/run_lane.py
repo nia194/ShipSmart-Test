@@ -37,6 +37,24 @@ def _sut_for(suite: str) -> SystemUnderTest:
     return SUT_REGISTRY.get(suite, EchoSUT())
 
 
+def _percentile(values: list[float], pct: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    k = max(0, min(len(ordered) - 1, round((pct / 100) * (len(ordered) - 1))))
+    return ordered[k]
+
+
+def _trace_aggregates(traces: list) -> dict:
+    """Judge-score avg, cost, and p95 latency for a suite's traces (§11)."""
+    scores = [t.score for t in traces if t.score is not None]
+    return {
+        "judge_score_avg": round(sum(scores) / len(scores), 3) if scores else None,
+        "cost_usd": round(sum(t.cost_usd for t in traces), 6),
+        "p95_latency_ms": round(_percentile([t.latency_ms for t in traces], 95), 3),
+    }
+
+
 def _repo_shas() -> dict[str, str]:
     try:
         sha = subprocess.check_output(
@@ -88,6 +106,7 @@ def run_lane(lane: str, *, write: bool = True) -> dict:
                 "gate_passed": result.gate.passed,
                 "gate": result.gate.detail,
                 "flaky": result.flaky_cases,
+                **_trace_aggregates(result.traces),
             }
         )
 

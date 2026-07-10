@@ -22,6 +22,14 @@ class Expected:
     must_cite_any: list[str] = field(default_factory=list)
     relevant_doc_ids: list[str] = field(default_factory=list)  # ground truth for precision/recall
     forbidden: list[str] = field(default_factory=list)
+    # Layer-3 agent/tool-use assertions (evals §6.1): which tools MUST be called,
+    # which must NOT (a forbidden tool executing fails loudly), which decision
+    # tags must/mustn't appear, and the step-count ceiling.
+    required_tools: list[str] = field(default_factory=list)
+    forbidden_tools: list[str] = field(default_factory=list)
+    required_tags: list[str] = field(default_factory=list)
+    forbidden_tags: list[str] = field(default_factory=list)
+    max_steps: int | None = None
     judge_rubric: str | None = None  # nightly/release only
 
 
@@ -77,6 +85,11 @@ def _case_from_obj(obj: dict) -> Case:
             must_cite_any=list(exp.get("must_cite_any", [])),
             relevant_doc_ids=list(exp.get("relevant_doc_ids", [])),
             forbidden=list(exp.get("forbidden", [])),
+            required_tools=list(exp.get("required_tools", [])),
+            forbidden_tools=list(exp.get("forbidden_tools", [])),
+            required_tags=list(exp.get("required_tags", [])),
+            forbidden_tags=list(exp.get("forbidden_tags", [])),
+            max_steps=exp.get("max_steps"),
             judge_rubric=exp.get("judge_rubric"),
         ),
         severity=obj.get("severity", "major"),

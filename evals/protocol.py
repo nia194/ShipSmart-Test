@@ -22,6 +22,7 @@ class Response:
     retrieved_doc_ids: list[str] = field(default_factory=list)  # for context precision/recall
     decisions: list[str] = field(default_factory=list)  # emitted tags
     tool_calls: list[str] = field(default_factory=list)
+    steps: int = 0  # agent loop step count (for the §6.1 max_steps assertion)
     latency_ms: float = 0.0
     tokens: int = 0
     cost_usd: float = 0.0
@@ -49,12 +50,17 @@ class EchoSUT:
         exp = case.expected
         refused = exp.behavior == "refusal"
         text = "SAFE_REFUSAL" if refused else f"echo:{case.input.get('query', case.id)}"
+        # Echo the case's own tool/tag assertions so the harness exercises the §6.1
+        # grading path deterministically (a real scripted-agent SUT replaces this).
+        tool_calls = [] if refused else list(exp.required_tools)
         return Response(
             text=text,
             refused=refused,
             sources=list(exp.must_cite_any[:1]),
             retrieved_doc_ids=list(exp.relevant_doc_ids),
-            decisions=list(case.tags),
+            decisions=list(case.tags) + list(exp.required_tags),
+            tool_calls=tool_calls,
+            steps=len(tool_calls),
             provider=self.provider,
             model=self.model,
         )
