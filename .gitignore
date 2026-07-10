@@ -46,6 +46,10 @@ coverage.xml
 evals/reports/history.jsonl
 evals/reports/trend.md
 evals/reports/traces/
+# Online-loop review queue (evals/promotion.py) — sampled candidates awaiting
+# human review; promotion into a dataset is a reviewed diff, never a commit of
+# this file.
+evals/reports/review_queue.jsonl
 
 # ─── Env / Secrets ────────────────────────────────────────────────────────────
 .env
