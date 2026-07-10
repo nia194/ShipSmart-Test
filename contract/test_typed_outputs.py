@@ -18,6 +18,14 @@ MODELS = [
     "ToolCallPolicy",
     "SourceCitation",
     "Action",
+    # Product Roadmap §6 typed result union + transparency (additive contract).
+    "NextQuestion",
+    "ShippingOptionResult",
+    "ComparisonResult",
+    "MissingInfoResult",
+    "PolicyAnswerResult",
+    "ToolCallTrace",
+    "AssistantAudit",
 ]
 
 
