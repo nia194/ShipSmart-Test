@@ -34,6 +34,7 @@ class SuiteResult:
     pass_count: int
     critical_failures: int
     gate: GateResult
+    judge_errors: int = 0  # judge invocations that ended judge_error (§10/§11 alert input)
     flaky_cases: list[str] = field(default_factory=list)
     traces: list[EvalTrace] = field(default_factory=list)
 
@@ -73,6 +74,7 @@ def run_suite(
     flaky: list[str] = []
     traces: list[EvalTrace] = []
 
+    judge_errors = 0
     for case in scoped:
         n = max(reps, case.runs) if lane != "ci" else 1
         verdicts: list[str] = []
@@ -82,6 +84,8 @@ def run_suite(
             v = _grade_once(case, resp, lane, has_judge_client)
             latency = (time.perf_counter() - t0) * 1000
             verdicts.append(v.verdict)
+            if v.grader == "llm_judge" and v.reason.startswith("judge_error"):
+                judge_errors += 1
             traces.append(
                 EvalTrace(
                     run_id=run_id,
@@ -129,6 +133,7 @@ def run_suite(
         pass_count=pass_count,
         critical_failures=critical_failures,
         gate=g,
+        judge_errors=judge_errors,
         flaky_cases=flaky,
         traces=traces,
     )

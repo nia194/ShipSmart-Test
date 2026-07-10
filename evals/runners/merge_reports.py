@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ..alerts import evaluate_history
+
 REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
 HISTORY = REPORTS_DIR / "history.jsonl"
 TREND = REPORTS_DIR / "trend.md"
@@ -52,6 +54,12 @@ def regenerate_trend() -> str:
         )
     if not records:
         lines.append("| _(no runs yet)_ | | | | | |")
+
+    # §11 alerts for the latest run (page = gate fail; warn = drift / judge_error).
+    alerts = evaluate_history(records)
+    lines += ["", "## Alerts (latest run)", ""]
+    lines += [f"- {a.render()}" for a in alerts] or ["_none_"]
+
     content = "\n".join(lines) + "\n"
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     TREND.write_text(content, encoding="utf-8")

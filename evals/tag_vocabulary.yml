@@ -69,6 +69,7 @@ tags:
     - normalized                  # unicode normalization changed the input (F3)
     - quarantined_chunk           # ingestion guard rejected a poisoned document (F5)
     - embedding_version           # startup embedding-compat check failed closed (F5)
+    - killswitch                  # guardrail:killswitch:{feature}:{on|off} — audited runtime flip (F9)
     # planned control tags (coverage.yml)
     - injection
     - misuse_refused
