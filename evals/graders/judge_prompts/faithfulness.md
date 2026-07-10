@@ -10,8 +10,9 @@ grounded in the provided context, and the answer does not add unsupported detail
 the context, or invents a figure/rule. An honest "the documents don't cover this"
 is a **pass** for faithfulness.
 
-Scoring: 1.0 fully grounded · 0.5 mostly grounded with one minor unsupported aside
-· 0.0 contains a fabricated or contradicted claim. `violations` lists each
-unsupported claim.
+Scoring (1–5): 5 fully grounded · 3 mostly grounded with one minor unsupported
+aside · 1 contains a fabricated or contradicted claim. `violations` lists each
+unsupported claim. (`verdict` is the independent pass/fail; a fabricated claim is
+always a fail regardless of score.)
 
 > Never judge safety here (that is rule-based). Faithfulness only.

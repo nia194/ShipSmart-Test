@@ -20,6 +20,8 @@ from dataclasses import dataclass
 
 DROP_THRESHOLD = 0.05
 JUDGE_ERROR_RATE_MAX = 0.02
+JUDGE_SCORE_FLOOR = 4.0       # Layer-5 judge average below this warns (§11)
+COST_SPIKE_RATIO = 0.50       # cost/run up >50% vs the trailing mean → budget review
 WINDOW = 5
 
 
@@ -87,6 +89,40 @@ def evaluate_history(
                     f"{judge_error_rate_max:.0%} (§10 — judge itself is failing)",
                 )
             )
+
+        # Layer-5 judge-quality floor: an average below 4.0/5 is a quality warn.
+        judge_avg = s.get("judge_score_avg")
+        if judge_avg is not None and judge_avg < JUDGE_SCORE_FLOOR:
+            alerts.append(
+                Alert(
+                    "warn",
+                    lane,
+                    suite,
+                    f"judge score avg {judge_avg:.2f} below {JUDGE_SCORE_FLOOR:.1f}/5 (§11)",
+                )
+            )
+
+        # Cost/run spike vs the trailing mean → budget review.
+        cost = float(s.get("cost_usd", 0.0))
+        prior_costs = [
+            float(ps.get("cost_usd", 0.0))
+            for r in prior
+            for ps in r.get("suites", [])
+            if ps.get("suite") == suite
+        ]
+        prior_costs = [c for c in prior_costs if c > 0]
+        if prior_costs and cost > 0:
+            baseline = sum(prior_costs) / len(prior_costs)
+            if cost > baseline * (1 + COST_SPIKE_RATIO):
+                alerts.append(
+                    Alert(
+                        "warn",
+                        lane,
+                        suite,
+                        f"cost/run ${cost:.4f} up >{COST_SPIKE_RATIO:.0%} vs "
+                        f"${baseline:.4f} trailing mean — budget review",
+                    )
+                )
 
     alerts.sort(key=lambda a: (a.severity != "page", a.suite))
     return alerts
