@@ -26,6 +26,11 @@ MODELS = [
     "PolicyAnswerResult",
     "ToolCallTrace",
     "AssistantAudit",
+    # Grid action bus (§6/§12).
+    "GridFilter",
+    "SortGridAction",
+    "FilterGridAction",
+    "SuggestAction",
 ]
 
 
