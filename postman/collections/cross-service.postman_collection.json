@@ -19,6 +19,10 @@
     {
       "key": "shipping_scope",
       "value": ""
+    },
+    {
+      "key": "mcp_tool_names",
+      "value": ""
     }
   ],
   "item": [
@@ -296,6 +300,92 @@
               ],
               "path": [
                 "ready"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MCP registry parity (API \u2194 MCP)",
+      "item": [
+        {
+          "name": "MCP publishes its tool registry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const names = pm.response.json().tools.map(t => t.name).sort();",
+                  "pm.collectionVariables.set('mcp_tool_names', JSON.stringify(names));",
+                  "pm.test('registry is non-empty', () => pm.expect(names).to.not.be.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{mcp_base}}/tools/list",
+              "host": [
+                "{{mcp_base}}"
+              ],
+              "path": [
+                "tools",
+                "list"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "API orchestration mirrors the registry it hydrated at boot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const apiNames = pm.response.json().map(t => t.name).sort();",
+                  "pm.test('same tool names on both sides of the hop', () => pm.expect(apiNames).to.eql(JSON.parse(pm.collectionVariables.get('mcp_tool_names'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Request-Id",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{python_base}}/api/v1/orchestration/tools",
+              "host": [
+                "{{python_base}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orchestration",
+                "tools"
               ]
             }
           }
