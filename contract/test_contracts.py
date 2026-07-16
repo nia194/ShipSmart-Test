@@ -257,7 +257,7 @@ def test_concierge_response_shape_matches_api_and_web():
     web = ts_interface_fields(WEB_CONCIERGE, "ConciergeResponse")
     assert api == web == {
         "reply", "state", "session_id", "clarification",
-        "dispatched_to", "sources", "decisions", "provider",
+        "dispatched_to", "sources", "decisions", "provider", "assistant",
     }
 
 

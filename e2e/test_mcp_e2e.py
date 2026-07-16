@@ -51,4 +51,8 @@ def test_validate_address_valid(mcp):
 
 def test_server_is_read_only(mcp):
     names = {t["name"] for t in mcp.post("/tools/list").json()["tools"]}
-    assert names <= {"validate_address", "get_quote_preview"}  # no write/booking tools
+    assert names <= {  # read-only calculators/validators — no write/booking tools
+        "validate_address", "get_quote_preview", "parse_address",
+        "calculate_dimensional_weight", "check_restricted_items",
+        "estimate_package_profile",
+    }
