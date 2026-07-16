@@ -100,6 +100,66 @@ _COMPARE_BODY = {
 }
 
 
+def test_recommendation_rule_based_cheapest_primary(api):
+    """The recommendation advisor scores real service options; the rule-based
+    path (source=rule) makes the cheapest option primary deterministically."""
+    r = api.post("/api/v1/advisor/recommendation", json={
+        "services": [
+            {"carrier": "UPS", "service": "Ground", "price_usd": 10.0, "estimated_days": 5},
+            {"carrier": "FedEx", "service": "2Day", "price_usd": 25.0, "estimated_days": 2},
+        ],
+        "context": {"weight_lbs": 5},
+    })
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["primary_recommendation"]["recommendation_type"] == "cheapest"
+    assert body["primary_recommendation"]["source"] == "rule"
+    assert body["alternatives"], "fastest option should surface as an alternative"
+
+
+def test_feedback_is_recorded(api):
+    r = api.post("/api/v1/feedback",
+                 json={"rating": "up", "category": "advisor", "comment": "helpful"})
+    assert r.status_code == 202, r.text  # accepted for async recording
+    assert r.json()["status"] == "recorded"
+
+
+def test_orchestration_tools_reflect_live_mcp_registry(api):
+    """GET /orchestration/tools mirrors the MCP registry the API hydrated at boot."""
+    r = api.get("/api/v1/orchestration/tools")
+    assert r.status_code == 200
+    names = {t["name"] for t in r.json()}
+    assert {"validate_address", "get_quote_preview"} <= names
+
+
+def test_orchestration_run_executes_tool_over_mcp(api):
+    """POST /orchestration/run drives a named MCP tool end-to-end (API → MCP)."""
+    r = api.post("/api/v1/orchestration/run", json={
+        "query": "validate this address",
+        "tool": "validate_address",
+        "params": {"street": "1 Main St", "city": "Los Angeles",
+                   "state": "CA", "zip_code": "90001"},
+    })
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["type"] == "tool_result"
+    assert body["tool_used"] == "validate_address"
+    assert body["data"]["is_valid"] is True
+    assert body["metadata"]["transport"] == "mcp"
+
+
+def test_agent_run_returns_grounded_answer_with_decision_trail(api):
+    r = api.post("/api/v1/agent/run", json={
+        "query": "What is the cheapest way to ship 5 lbs from 90210 to 10001?",
+        "context": {"origin_zip": "90210", "destination_zip": "10001", "weight_lbs": 5},
+    })
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["answer"]
+    assert body["sources"], "agent answers must stay grounded in RAG sources"
+    assert "agent:plan" in body["decisions"]
+
+
 def test_compare_returns_all_scenarios_with_rule_based_winner(api):
     """The decision-cockpit path the Web CompareSection drives: POST the real
     quote facts, get back all four precomputed scenarios. Winner/numbers are
