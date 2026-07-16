@@ -21,6 +21,9 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Shared, NON-secret test JWT secret (>=32 bytes for HS256). Mirrored in e2e/conftest.py.
 export SHIPSMART_E2E_JWT_SECRET="e2e-test-secret-please-change-32chars-minimum"
+# NON-secret admin token so the /admin/ai-controls e2e can exercise the kill-switch
+# surface (fail-closed: unset would 404 it). Mirrored in e2e/conftest.py.
+export SHIPSMART_E2E_ADMIN_TOKEN="e2e-admin-token-nonsecret"
 
 wait_http() {  # url name [max-seconds]
   local url="$1" name="$2" max="${3:-60}"
@@ -53,6 +56,7 @@ up() {
       INTERNAL_JAVA_API_URL=http://127.0.0.1:8080 RAG_AUTO_INGEST=true DATABASE_URL= \
       GUARDRAILS_ENABLED=true GUARDRAILS_BLOCK_ON_INJECTION=true \
       WORKFLOW_ENABLED=true CONCIERGE_ENABLED=true CONVERSATION_STORE=memory \
+      ASSISTANT_CONTRACT_V1=true ADMIN_API_TOKEN="$SHIPSMART_E2E_ADMIN_TOKEN" \
       SHIPPING_SCOPE="${SHIPPING_SCOPE:-worldwide}" \
       COMPLIANCE_EXPLICIT_ENABLED="${COMPLIANCE_EXPLICIT_ENABLED:-true}" \
       nohup uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 >"$STATE/api.log" 2>&1 &
